@@ -1,0 +1,36 @@
+<?php
+session_start();
+require_once __DIR__ . "/../config/koneksi.php";
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+
+    $login = trim($_POST['login']);
+    $password = $_POST['password'];
+
+    $stmt = mysqli_prepare($koneksi, "SELECT * FROM users WHERE username = ? OR email = ?");
+    mysqli_stmt_bind_param($stmt, "ss", $login, $login);
+    mysqli_stmt_execute($stmt);
+
+    $result = mysqli_stmt_get_result($stmt);
+    $data = mysqli_fetch_assoc($result);
+
+    if ($data) {
+
+        if (password_verify($password, $data['password'])) {
+
+            $_SESSION['id_user'] = $data['id_user'];
+            $_SESSION['username'] = $data['username'];
+
+            header("Location: /renewal-system/public/index.php");
+            exit();
+
+        } else {
+            header("Location: ../views/auth/login.php?error=Password salah");
+            exit();
+        }
+
+    } else {
+        header("Location: ../views/auth/login.php?error=User tidak ditemukan");
+        exit();
+    }
+}
