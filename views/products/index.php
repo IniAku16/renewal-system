@@ -163,6 +163,11 @@ $activePage = 'products';
                         <h2 class="fw-bold text-dark">Heyow Welcome, <?= htmlspecialchars($_SESSION['username'] ?? 'User') ?></h2>
                         <p class="text-muted">Kelola renewal produk Anda di sini.</p>
                     </div>
+                    <div class="col-md-3">
+                            <button class="btn btn-success px-4 py-2 shadow-sm rounded-3 me-2" data-bs-toggle="modal" data-bs-target="#importExcelModal">
+                                <i class="bi bi-file-earmark-excel me-2"></i> Import Excel
+                            </button>
+                        </div>
                     <button class="btn btn-primary px-4 py-2 shadow-sm rounded-3" data-bs-toggle="modal" data-bs-target="#createProductModal">
                         <i class="bi bi-plus-lg me-2"></i> Add New Product
                     </button>
@@ -237,11 +242,6 @@ $activePage = 'products';
                         <div class="col-md-3">
                             <button type="submit" class="btn btn-success w-100 fw-bold">
                                 <i class="bi bi-file-earmark-excel me-2"></i> Export Excel
-                            </button>
-                        </div>
-                        <div class="col-md-3">
-                            <button class="btn btn-success px-4 py-2 shadow-sm rounded-3 me-2" data-bs-toggle="modal" data-bs-target="#importExcelModal">
-                                <i class="bi bi-file-earmark-excel me-2"></i> Import Excel
                             </button>
                         </div>
                     </form>
