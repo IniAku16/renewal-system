@@ -34,6 +34,9 @@ switch ($action) {
     case 'exportExcel':
         $productController->exportExcel();
         break;
+    case 'importExcel':
+        $productController->importExcel();
+        break;
     case 'history':
         $productController->history();
         break;

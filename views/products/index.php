@@ -239,6 +239,11 @@ $activePage = 'products';
                                 <i class="bi bi-file-earmark-excel me-2"></i> Export Excel
                             </button>
                         </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-success px-4 py-2 shadow-sm rounded-3 me-2" data-bs-toggle="modal" data-bs-target="#importExcelModal">
+                                <i class="bi bi-file-earmark-excel me-2"></i> Import Excel
+                            </button>
+                        </div>
                     </form>
                 </div>
 
@@ -389,6 +394,31 @@ $activePage = 'products';
                         <input type="date" class="form-control" id="payment_date" required />
                     </div>
                     <div class="modal-footer"> <button type="submit" class="btn btn-success">Save</button> </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="importExcelModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content card-custom">
+                <form id="importExcelForm" enctype="multipart/form-data">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Import Data Produk</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <small>Format Excel harus memiliki header: <b>Product Name, Serial Number, Expired Date (YYYY-MM-DD), Last Quotation</b></small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Pilih File Excel (.xlsx / .xls)</label>
+                            <input type="file" name="excel_file" class="form-control" accept=".xlsx, .xls" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-success">Upload & Import</button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -614,6 +644,27 @@ $activePage = 'products';
                             if (data.status === 'success') location.reload();
                         })
                         .catch(() => alert('Error sistem!'));
+                });
+            }
+
+            const importExcelForm = document.getElementById('importExcelForm');
+            if (importExcelForm) {
+                importExcelForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const formData = new FormData(this);
+
+                    fetch('/renewal-system/public/index.php?action=importExcel', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            alert(data.message);
+                            if (data.status === 'success') {
+                                location.reload();
+                            }
+                        })
+                        .catch(() => alert('Terjadi kesalahan saat import!'));
                 });
             }
 
