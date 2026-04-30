@@ -27,6 +27,8 @@ class ProductController
         $activeCount = 0;
         $expiringCount = 0;
         $expiredCount = 0;
+        $requestedCount = 0;
+        $notRequestedCount = 0;
         $expiringProducts = [];
 
         date_default_timezone_set("Asia/Jakarta");
@@ -35,6 +37,12 @@ class ProductController
         while ($row = mysqli_fetch_assoc($products)) {
             $expired = $row['expired_date'];
             $request_count = $row['request_count'] ?? 0;
+
+            if ($request_count > 0) {
+                $requestedCount++;
+            } else {
+                $notRequestedCount++;
+            }
 
             if (empty($expired)) {
                 $status = "unknown";
@@ -388,10 +396,10 @@ class ProductController
 
                 $successCount = 0;
                 $skipCount = 0;
-                $processedSerials = []; 
+                $processedSerials = [];
 
                 foreach ($sheetData as $index => $row) {
-                    if ($index == 1) continue; 
+                    if ($index == 1) continue;
 
                     $name = trim($row[$columnMapping['name']] ?? '');
                     $serial = trim($row[$columnMapping['serial']] ?? '');
