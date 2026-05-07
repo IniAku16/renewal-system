@@ -14,7 +14,18 @@ if ($mysqli->connect_error) {
 $today = new DateTime('now', new DateTimeZone('Asia/Jakarta'));
 $today->setTime(0, 0, 0);
 
-$query = $mysqli->query("SELECT id, product_name, expired_date FROM products WHERE request_count = 0");
+if (!isset($user_id_reminder)) {
+    return;
+}
+
+$userQuery = $mysqli->query("SELECT email, username FROM users WHERE id_user = '$user_id_reminder'");
+$userData = $userQuery->fetch_assoc();
+$email_tujuan = $userData['email'];
+$nama_user = $userData['username'];
+
+$query = $mysqli->query("SELECT id, product_name, expired_date FROM products 
+                         WHERE request_count = 0 
+                         AND user_id = '$user_id_reminder'");
 
 $rows = "";
 $kirim_email = false;
@@ -27,22 +38,27 @@ while ($data = $query->fetch_assoc()) {
     $interval = $today->diff($exp);
     $selisih_hari = (int)$interval->format("%r%a");
 
-    if ($selisih_hari > 60) {
+    if ($selisih_hari == 60 || $selisih_hari == 30 || $selisih_hari <= 3) {
+    } else {
         continue;
     }
 
     if ($selisih_hari < 0) {
-        $status = "Expired";
-        $badge = "#e74c3c";
-        $text = "Expired " . abs($selisih_hari) . " hari lalu";
+        $status = "EXPIRED";
+        $badge  = "#e74c3c";
+        $text   = "Expired " . abs($selisih_hari) . " hari lalu";
     } elseif ($selisih_hari == 0) {
-        $status = "Hari Ini";
-        $badge = "rgb(103, 255, 22)";
-        $text = "Hari ini";
+        $status = "EXPIRED";
+        $badge  = "#e74c3c";
+        $text   = "HARI INI (Batas Terakhir)";
+    } elseif ($selisih_hari <= 3) {
+        $status = "URGENT";
+        $badge  = "#e67e22";
+        $text   = $selisih_hari . " hari lagi";
     } else {
-        $status = "Expiring";
-        $badge = "#f39c12";
-        $text = $selisih_hari . " hari lagi";
+        $status = "EXPIRING";
+        $badge  = "#f1c40f";
+        $text   = $selisih_hari . " hari lagi";
     }
 
     $rows .= "
@@ -52,18 +68,17 @@ while ($data = $query->fetch_assoc()) {
         <td style='padding: 15px 10px; text-align: center; color: #34495e; font-size: 14px;'>" . $exp->format("d M Y") . "</td>
         <td style='padding: 15px 10px; text-align: center; color: #34495e; font-size: 14px;'>$text</td>
         <td style='padding: 15px 10px; text-align: center;'>
-            <span style='background:$badge; color:white; padding:4px 12px; border-radius:50px; font-size:11px; font-weight:bold; text-transform:uppercase; letter-spacing:0.5px;'>
+            <span style='background:$badge; color:white; padding:4px 12px; border-radius:50px; font-size:11px; font-weight:bold; text-transform:uppercase;'>
                 $status
             </span>
         </td>
         <td style='padding: 15px 10px; text-align: center;'>
             <a href='http://10.87.203.183/renewal-system/cron/request.php?id={$data['id']}'
-               style='background:#27ae60; color:white; padding:8px 16px; border-radius:8px; text-decoration:none; font-size:13px; font-weight:bold; display:inline-block; transition: all 0.3s;'>
+               style='background:#27ae60; color:white; padding:8px 16px; border-radius:8px; text-decoration:none; font-size:12px; font-weight:bold; display:inline-block;'>
                Request Quotation
             </a>
         </td>
-    </tr>
-    ";
+    </tr>";
 
     $kirim_email = true;
     $no++;
@@ -145,19 +160,19 @@ if ($kirim_email) {
 
     $mail->From = "HexindoWaranty@hexindo-tbk.co.id";
     $mail->FromName = "Warranty Server System";
-    $mail->addAddress("andika@hexindo-tbk.co.id");
-    $mail->addAddress("ara.rhzz16@gmail.com");
-
+    $mail->addAddress($email_tujuan); 
+    $mail->addCC("andika@hexindo-tbk.co.id");
+    $mail->addCC("ara.rhzz16@gmail.com"); 
 
     $mail->isHTML(true);
-    $mail->Subject = "Produk Mendekati / Melewati Expired (≤ 60 Hari)";
+    $mail->Subject = "Reminder Produk Expiring(≤ 60 Hari) - $nama_user";
     $mail->Body    = $isi_email;
-    $mail->AltBody = "Reminder produk akan expired";
+    $mail->AltBody = "Reminder produk";
 
     if (!$mail->send()) {
         echo "Mailer Error: " . $mail->ErrorInfo;
     } else {
-        echo "Email berhasil dikirim ke Pak Dika";
+        echo "Email berhasil dikirim";
     }
 } else {
     echo "Tidak ada produk expiring (≤ 60 hari)";

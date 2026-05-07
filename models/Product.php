@@ -11,120 +11,119 @@ class ProductModel
         $this->db = $koneksi;
     }
 
-    public function getAllProducts()
+    public function getAllProducts($user_id)
     {
-        $sql = "SELECT * FROM products ORDER BY expired_date ASC";
-        $result = mysqli_query($this->db, $sql);
-        return $result;
+        $sql = "SELECT * FROM products WHERE user_id = ? ORDER BY expired_date ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        return $stmt->get_result();
     }
 
-    public function getById($id)
+    public function getById($id, $user_id)
     {
-        $sql = "SELECT * FROM products WHERE id = ?";
+        $sql = "SELECT * FROM products WHERE id = ? AND user_id= ?";
         $stmt = $this->db->prepare($sql);
-        $stmt->bind_param("i", $id);
+        $stmt->bind_param("ii", $id, $user_id);
         $stmt->execute();
         return $stmt->get_result()->fetch_assoc();
     }
 
-    public function create($name, $serial, $expired, $harga)
+    public function create($name, $serial, $expired, $harga, $user_id)
     {
-        $sql = "INSERT INTO products (product_name, serial_number, expired_date, harga_renewal) VALUES (?,?,?,?)";
+        $sql = "INSERT INTO products (product_name, serial_number, expired_date, harga_renewal, user_id) VALUES (?,?,?,?,?)";
         $stmt = $this->db->prepare($sql);
-        $stmt->bind_param("sssi", $name, $serial, $expired, $harga);
+        $stmt->bind_param("sssii", $name, $serial, $expired, $harga, $user_id);
         return $stmt->execute();
     }
 
-    public function update($id, $name, $serial, $expired, $harga)
+    public function update($id, $name, $serial, $expired, $harga, $user_id)
     {
         $sql = "UPDATE products 
                 SET product_name=?, serial_number=?, expired_date=?, harga_renewal=? 
-                WHERE id=?";
+                WHERE id=? AND user_id=?";
 
         $stmt = $this->db->prepare($sql);
-        $stmt->bind_param("sssii", $name, $serial, $expired, $harga, $id);
-
+        $stmt->bind_param("sssiii", $name, $serial, $expired, $harga, $id,$user_id);
         return $stmt->execute();
     }
 
-    public function updatePayment($id, $payment_date)
+    public function updatePayment($id, $payment_date, $user_id)
     {
+        $product = $this->getById($id, $user_id); 
 
-        $product = $this->getById($id);
+        if (!$product) return false;
 
-        if (!$product) {
-            return false;
-        }
-
-        $expired_lama = $product['expired_date'];
         $amount = $product['harga_renewal'];
-
-        $new_expired = date("Y-m-d", strtotime($expired_lama . " +1 year"));
-
         $paymentModel = new PaymentModel($this->db);
 
         $this->db->begin_transaction();
 
         try {
-            $saveHistory = $paymentModel->create($id, $payment_date, $amount);
+            $paymentSaved = $paymentModel->create($id, $payment_date, $amount, $user_id);
 
-            if (!$saveHistory) {
-                throw new Exception("Gagal simpan histori payment");
+            if (!$paymentSaved) {
+                throw new Exception("Gagal menyimpan data pembayaran");
             }
 
-            $sql = "UPDATE products 
-                    SET payment_status='done', payment_date=?, expired_date=?, request_count=0 
-                    WHERE id=?";
-            $stmt = $this->db->prepare($sql);
-            $stmt->bind_param("ssi", $payment_date, $new_expired, $id);
+            $new_expired = date('Y-m-d', strtotime('+1 year', strtotime($payment_date)));
 
-            $updateProduct = $stmt->execute();
+            $sqlProduct = "UPDATE products SET 
+                        expired_date = ?, 
+                        request_count = 0 
+                      WHERE id = ? AND user_id = ?";
+            $stmtProd = $this->db->prepare($sqlProduct);
+            $stmtProd->bind_param("sii", $new_expired, $id, $user_id);
+            $productUpdated = $stmtProd->execute();
 
-            if (!$updateProduct) {
-                throw new Exception("Gagal update product");
+            if (!$productUpdated) {
+                throw new Exception("Gagal mengupdate masa aktif produk");
             }
 
             $this->db->commit();
             return true;
         } catch (Exception $e) {
             $this->db->rollback();
+            error_log("Payment Error: " . $e->getMessage());
             return false;
         }
     }
 
-    public function delete($id)
+    public function delete($id, $user_id)
     {
-        $sql = "DELETE FROM products WHERE id=?";
+        $sql = "DELETE FROM products WHERE id=? AND user_id=?";
         $stmt = $this->db->prepare($sql);
-        $stmt->bind_param("i", $id);
+        $stmt->bind_param("ii", $id, $user_id);
         return $stmt->execute();
     }
 
-    public function isSerialNumberExists($serial)
+    public function isSerialNumberExists($serial, $user_id)
     {
-        $sql = "SELECT id FROM products WHERE serial_number = ? LIMIT 1";
+        $sql = "SELECT id FROM products WHERE serial_number = ? AND user_id = ? LIMIT 1";
         $stmt = $this->db->prepare($sql);
-        $stmt->bind_param("s", $serial);
+        $stmt->bind_param("si", $serial, $user_id);
         $stmt->execute();
         $result = $stmt->get_result();
 
         return $result->num_rows > 0;
     }
 
-    public function isSerialNumberExistsForOther($serial, $id)
+
+    public function isSerialNumberExistsForOther($serial, $id, $user_id)
     {
-        $sql = "SELECT id FROM products WHERE serial_number = ? AND id != ? LIMIT 1";
+        $sql = "SELECT id FROM products WHERE serial_number = ? AND id != ? AND user_id = ? LIMIT 1";
         $stmt = $this->db->prepare($sql);
-        $stmt->bind_param("si", $serial, $id);
+        $stmt->bind_param("sii", $serial, $id, $user_id);
         $stmt->execute();
         $result = $stmt->get_result();
 
         return $result->num_rows > 0;
     }
 
-    public function getProductsByFilter($startDate = null, $endDate = null, $year = null)
+
+    public function getProductsByFilter($user_id, $startDate = null, $endDate = null, $year = null)
     {
-        $sql = "SELECT * FROM products WHERE 1=1";
+        $sql = "SELECT * FROM products WHERE user_id = '$user_id'";
 
         if (!empty($startDate) && !empty($endDate)) {
             $sql .= " AND expired_date BETWEEN '$startDate' AND '$endDate'";
@@ -138,7 +137,8 @@ class ProductModel
         return mysqli_query($this->db, $sql);
     }
 
-    public function incrementRequestCount($id) {
+    public function incrementRequestCount($id)
+    {
         $sql = "UPDATE products SET request_count = request_count + 1 WHERE id = ?";
         $stmt = $this->db->prepare($sql);
         $stmt->bind_param("i", $id);

@@ -9,24 +9,15 @@ class PaymentModel
         $this->db = $koneksi;
     }
 
-    public function create($product_id, $payment_date, $amount)
+    public function create($product_id, $payment_date, $amount, $user_id)
     {
-        $sql = "INSERT INTO payments (product_id, payment_date, amount) VALUES (?, ?, ?)";
+        $sql = "INSERT INTO payments (product_id, payment_date, amount, user_id) VALUES (?, ?, ?, ?)";
         $stmt = $this->db->prepare($sql);
-        $stmt->bind_param("isi", $product_id, $payment_date, $amount);
+        $stmt->bind_param("isii", $product_id, $payment_date, $amount, $user_id);
         return $stmt->execute();
     }
 
-    public function getByProduct($product_id)
-    {
-        $sql = "SELECT * FROM payments WHERE product_id=? ORDER BY payment_date DESC";
-        $stmt = $this->db->prepare($sql);
-        $stmt->bind_param("i", $product_id);
-        $stmt->execute();
-        return $stmt->get_result();
-    }
-
-    public function getGroupedHistory()
+    public function getGroupedHistory($user_id)
     {
         $sql = "SELECT 
                 p.id AS product_id,
@@ -37,26 +28,31 @@ class PaymentModel
                 MAX(py.payment_date) AS last_payment_date
             FROM products p
             INNER JOIN payments py ON p.id = py.product_id
+            WHERE p.user_id = ?
             GROUP BY p.id, p.product_name, p.serial_number
             ORDER BY last_payment_date DESC, p.product_name ASC";
 
-        return mysqli_query($this->db, $sql);
-    }
-
-    public function getPaymentDetailsByProduct($product_id)
-    {
-        $sql = "SELECT id, payment_date, amount
-            FROM payments
-            WHERE product_id = ?
-            ORDER BY payment_date DESC, id DESC";
-
         $stmt = $this->db->prepare($sql);
-        $stmt->bind_param("i", $product_id);
+        $stmt->bind_param("i", $user_id);
         $stmt->execute();
         return $stmt->get_result();
     }
 
-    public function getAllGroupedHistoryWithDetails()
+    public function getPaymentDetailsByProduct($product_id, $user_id)
+    {
+        $sql = "SELECT py.id, py.payment_date, py.amount
+            FROM payments py
+            JOIN products p ON py.product_id = p.id
+            WHERE py.product_id = ? AND p.user_id = ?
+            ORDER BY py.payment_date DESC, py.id DESC";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->bind_param("ii", $product_id, $user_id);
+        $stmt->execute();
+        return $stmt->get_result();
+    }
+
+    public function getAllGroupedHistoryWithDetails($user_id)
     {
         $sqlProducts = "SELECT 
                         p.id AS product_id,
@@ -67,13 +63,17 @@ class PaymentModel
                         MAX(py.payment_date) AS last_payment_date
                     FROM products p
                     INNER JOIN payments py ON p.id = py.product_id
+                    WHERE p.user_id = ?
                     GROUP BY p.id, p.product_name, p.serial_number
                     ORDER BY p.product_name ASC";
 
-        $resultProducts = mysqli_query($this->db, $sqlProducts);
-        $data = [];
+        $stmt = $this->db->prepare($sqlProducts);
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+        $resultProducts = $stmt->get_result();
 
-        while ($product = mysqli_fetch_assoc($resultProducts)) {
+        $data = [];
+        while ($product = $resultProducts->fetch_assoc()) {
             $productId = $product['product_id'];
 
             $sqlDetails = "SELECT payment_date, amount
@@ -81,13 +81,13 @@ class PaymentModel
                        WHERE product_id = ?
                        ORDER BY payment_date ASC, id ASC";
 
-            $stmt = $this->db->prepare($sqlDetails);
-            $stmt->bind_param("i", $productId);
-            $stmt->execute();
-            $resultDetails = $stmt->get_result();
+            $stmtDet = $this->db->prepare($sqlDetails);
+            $stmtDet->bind_param("i", $productId);
+            $stmtDet->execute();
+            $resultDetails = $stmtDet->get_result();
 
             $details = [];
-            while ($detail = mysqli_fetch_assoc($resultDetails)) {
+            while ($detail = $resultDetails->fetch_assoc()) {
                 $details[] = $detail;
             }
 

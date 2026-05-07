@@ -12,6 +12,8 @@ class UserModel
     public $username;
     public $email;
     public $password;
+    public $role;
+    public $departemen;
 
     public function __construct($koneksi)   
     {
@@ -19,44 +21,61 @@ class UserModel
     }
 
     public function login (){
-        $query= " SELECT id_user, username, email, password FROM "
+        $query= " SELECT id_user, username, email, role, departemen password FROM " . $this->table . "WHERE username=? OR email=?"
                 . $this->table . " WHERE username=? OR email=?";
 
         $stmt = $this->db->prepare($query);
-
         $stmt->bind_param("ss", $this->username, $this->username);
         $stmt->execute();
-
         $result = $stmt->get_result();
 
         if ($result->num_rows > 0){
             $row = $result->fetch_assoc();
-
             if(password_verify($this->password, $row['password'])){
                 $this->id_user = $row['id_user'];
                 $this->username = $row['username'];
                 $this->email = $row['email'];
-
+                $this->role = $row['role'];
+                $this->departemen = $row['departemen'];
                 return true;
             }
         }
         return false;
     }
 
-    public function register (){
-        $query = "INSERT INTO users (username, email, password) VALUES(?,?,?)";
-
+     public function updateLastActivity($id_user) {
+        $query = "UPDATE users SET last_activity = NOW() WHERE id_user = ?";
         $stmt = $this->db->prepare($query);
+        $stmt->bind_param("i", $id_user);
+        $stmt->execute();
+    }
 
-        $stmt->bind_param("sss", 
-        $this-> username,
-        $this-> email,
-        $this-> password);
+    public function getAllUsers() {
+        $query = "SELECT id_user, username, email, role, departemen, last_activity FROM " . $this->table . " ORDER BY last_activity DESC";
+        return $this->db->query($query);
+    }
 
-        if($stmt->execute()){
-            return true;
-        }
-        return false;
+    public function getUserById($id) {
+        $query = "SELECT * FROM users WHERE id_user = ?";
+        $stmt = $this->db->prepare($query);
+        $stmt->bind_param("i", $id);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_assoc();
+    }
+
+    public function createUser($username, $email, $password, $dept, $role) {
+        $hashed = password_hash($password, PASSWORD_DEFAULT);
+        $query = "INSERT INTO users (username, email, password, departemen, role) VALUES (?, ?, ?, ?, ?)";
+        $stmt = $this->db->prepare($query);
+        $stmt->bind_param("sssss", $username, $email, $hashed, $dept, $role);
+        return $stmt->execute();
+    }
+    
+    public function deleteUser($id) {
+        $query = "DELETE FROM users WHERE id_user = ?";
+        $stmt = $this->db->prepare($query);
+        $stmt->bind_param("i", $id);
+        return $stmt->execute();
     }
 
     public function updatePassword($identifier, $newPassword)

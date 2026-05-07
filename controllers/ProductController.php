@@ -21,7 +21,8 @@ class ProductController
 
     public function index()
     {
-        $products = $this->model->getAllProducts();
+        $user_id = $_SESSION['id_user'];
+        $products = $this->model->getAllProducts($user_id);
         $data = [];
 
         $activeCount = 0;
@@ -79,30 +80,34 @@ class ProductController
         $products = $data;
         $totalProducts = count($products);
 
-        if (!empty($expiringProducts) || $expiredCount > 0) {
-
-            $tanggalHariIni = date("Y-m-d");
-            $logFile = __DIR__ . '/../cron/last_email_sent.txt';
-
-            $terakhirKirim = file_exists($logFile) ? trim(file_get_contents($logFile)) : '';
-
-            if ($terakhirKirim !== $tanggalHariIni) {
-
-                file_put_contents($logFile, $tanggalHariIni);
-
-                ob_start();
-                include __DIR__ . "/../cron/email_reminder.php";
-                ob_end_clean();
-                clearstatcache();
+        $adaMilestoneHariIni = false;
+        foreach ($products as $p) {
+            if (($p['request_count'] ?? 0) == 0) {
+                $hari = $p['sisa_hari'];
+                if ($hari == 60 || $hari == 30 || $hari <= 3) {
+                    $adaMilestoneHariIni = true;
+                    break;
+                }
             }
         }
 
+        if ($adaMilestoneHariIni) {
+            $tanggalHariIni = date("Y-m-d");
+             $logFile = __DIR__ . '/../cron/last_email_sent_user_' . $user_id . '.txt'; 
+            $terakhirKirim = file_exists($logFile) ? trim(file_get_contents($logFile)) : '';
+
+            if ($terakhirKirim !== $tanggalHariIni) {
+                file_put_contents($logFile, $tanggalHariIni);
+                $this->triggerEmailReminder($user_id);
+            }
+        }
         include __DIR__ . "/../views/products/index.php";
     }
 
     public function create()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $user_id = $_SESSION['id_user'];
             $name    = trim($_POST['product_name'] ?? '');
             $serial  = trim($_POST['serial_number'] ?? '');
             $expired = $_POST['expired_date'] ?? '';
@@ -110,25 +115,23 @@ class ProductController
 
             header('Content-Type: application/json');
 
-            if ($this->model->isSerialNumberExists($serial)) {
+            if ($this->model->isSerialNumberExists($serial, $user_id)) {
                 echo json_encode([
                     "status" => "error",
-                    "message" => "Serial number sudah terdaftar, gunakan serial number lain"
+                    "message" => "Serial number sudah terdaftar di akun Anda"
                 ]);
                 exit;
             }
 
-            $success = $this->model->create($name, $serial, $expired, $harga);
+            $success = $this->model->create($name, $serial, $expired, $harga, $user_id);
 
             if ($success) {
                 $today = new DateTime();
                 $expDate = new DateTime($expired);
-                $diff = $today->diff($expDate)->format("%r%a");
+                $diff = (int)$today->diff($expDate)->format("%r%a");
 
-                if ($diff <= 60) {
-                    ob_start();
-                    include __DIR__ . "/../cron/email_reminder.php";
-                    ob_end_clean();
+                if ($diff == 60 || $diff == 30 || $diff <= 3) {
+                    $this->triggerEmailReminder($user_id);
                 }
             }
 
@@ -142,7 +145,9 @@ class ProductController
 
     public function update($id)
     {
-        $product = $this->model->getById($id);
+        $user_id = $_SESSION['id_user'];
+
+        $product = $this->model->getById($id, $user_id);
 
         if (!$product) {
             header('Content-Type: application/json');
@@ -155,8 +160,10 @@ class ProductController
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $payment_status = $_POST['payment_status'] ?? null;
+            $user_id = $_SESSION['id_user'];
 
             if ($payment_status === 'done') {
+                $user_id = $_SESSION['id_user'];
                 $payment_date = $_POST['payment_date'] ?? null;
 
                 if (empty($payment_date)) {
@@ -177,7 +184,7 @@ class ProductController
                     exit;
                 }
 
-                $success = $this->model->updatePayment($id, $payment_date);
+                $success = $this->model->updatePayment($id, $payment_date, $user_id);
 
                 header('Content-Type: application/json');
                 echo json_encode([
@@ -191,16 +198,17 @@ class ProductController
                 $expired = $_POST['expired_date'] ?? '';
                 $harga   = $_POST['harga_renewal'] ?? '';
 
-                if ($this->model->isSerialNumberExistsForOther($serial, $id)) {
+                if ($this->model->isSerialNumberExistsForOther($serial, $id, $user_id)) {
                     header('Content-Type: application/json');
                     echo json_encode([
                         "status" => "error",
-                        "message" => "Serial number sudah dipakai product lain"
+                        "message" => "Serial number sudah dipakai product lain di akun Anda"
                     ]);
                     exit;
                 }
 
-                $success = $this->model->update($id, $name, $serial, $expired, $harga);
+
+                $success = $this->model->update($id, $name, $serial, $expired, $harga, $user_id);
 
                 header('Content-Type: application/json');
                 echo json_encode([
@@ -214,7 +222,8 @@ class ProductController
 
     public function history()
     {
-        $result = $this->paymentModel->getGroupedHistory();
+        $user_id = $_SESSION['id_user'];
+        $result = $this->paymentModel->getGroupedHistory($user_id);
         $histories = [];
 
         while ($row = mysqli_fetch_assoc($result)) {
@@ -227,18 +236,15 @@ class ProductController
     public function historyDetail()
     {
         header('Content-Type: application/json');
-
+        $user_id = $_SESSION['id_user'];
         $product_id = $_GET['product_id'] ?? null;
 
         if (!$product_id) {
-            echo json_encode([
-                "status" => "error",
-                "message" => "Product ID tidak ditemukan"
-            ]);
+            echo json_encode(["status" => "error", "message" => "Product ID tidak ditemukan"]);
             exit;
         }
 
-        $result = $this->paymentModel->getPaymentDetailsByProduct($product_id);
+        $result = $this->paymentModel->getPaymentDetailsByProduct($product_id, $user_id);
         $details = [];
 
         while ($row = mysqli_fetch_assoc($result)) {
@@ -255,21 +261,18 @@ class ProductController
     public function historyPdf()
     {
         require_once __DIR__ . '/../vendor/autoload.php';
-
+        $user_id = $_SESSION['id_user'];
         $product_id = $_GET['product_id'] ?? null;
-
         $dompdf = new \Dompdf\Dompdf();
 
         if ($product_id) {
-            $product = $this->model->getById($product_id);
-
-            if (!$product) {
-                die("Product tidak ditemukan");
+            $product = $this->model->getById($product_id, $user_id);
+            if (!$product || $product['user_id'] != $user_id) {
+                die("Akses ditolak atau product tidak ditemukan");
             }
 
-            $result = $this->paymentModel->getPaymentDetailsByProduct($product_id);
+            $result = $this->paymentModel->getPaymentDetailsByProduct($product_id, $user_id);
             $details = [];
-
             while ($row = mysqli_fetch_assoc($result)) {
                 $details[] = $row;
             }
@@ -284,7 +287,7 @@ class ProductController
             $dompdf->stream("riwayat-pembayaran-" . $product['product_name'] . ".pdf", ["Attachment" => false]);
             exit;
         } else {
-            $histories = $this->paymentModel->getAllGroupedHistoryWithDetails();
+            $histories = $this->paymentModel->getAllGroupedHistoryWithDetails($user_id);
 
             ob_start();
             include __DIR__ . '/../views/products/history_pdf_all.php';
@@ -301,9 +304,10 @@ class ProductController
     public function exportExcel()
     {
         if (ob_get_contents()) ob_end_clean();
+        $user_id = $_SESSION['id_user'];
         $startDate = $_GET['start_date'] ?? null;
         $endDate   = $_GET['end_date'] ?? null;
-        $result = $this->model->getProductsByFilter($startDate, $endDate);
+        $result = $this->model->getProductsByFilter($user_id, $startDate, $endDate);
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -365,6 +369,7 @@ class ProductController
     public function importExcel()
     {
         header('Content-Type: application/json');
+        $user_id = $_SESSION['id_user'];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
             $file = $_FILES['excel_file']['tmp_name'];
@@ -414,10 +419,11 @@ class ProductController
                         continue;
                     }
 
-                    if ($this->model->isSerialNumberExists($serial)) {
+                    if ($this->model->isSerialNumberExists($serial, $user_id)) {
                         $skipCount++;
                         continue;
                     }
+
 
                     $rawDate = $row[$columnMapping['expired']] ?? null;
                     if (is_numeric($rawDate)) {
@@ -429,7 +435,8 @@ class ProductController
                     $rawHarga = $row[$columnMapping['harga']] ?? 0;
                     $harga = (int)preg_replace('/[^0-9]/', '', $rawHarga);
 
-                    $res = $this->model->create($name, $serial, $expired, $harga);
+                    $res = $this->model->create($name, $serial, $expired, $harga, $user_id);
+
                     if ($res) {
                         $successCount++;
                         $processedSerials[] = $serial;
@@ -449,8 +456,18 @@ class ProductController
 
     public function delete($id)
     {
-        $this->model->delete($id);
+        $user_id = $_SESSION['id_user']; 
+        $this->model->delete($id, $user_id); 
         header("Location: index.php");
         exit;
+    }
+
+    private function triggerEmailReminder($user_id)
+    {
+        $user_id_reminder = $user_id;
+
+        ob_start();
+        include __DIR__ . "/../cron/email_reminder.php";
+        ob_end_clean();
     }
 }

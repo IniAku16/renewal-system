@@ -204,17 +204,16 @@
             </div>
         <?php endif; ?>
 
-        <form method="POST" action="../../controllers/AuthController.php" class="text-start">
-
+        <form action="../../public/index.php" method="POST" class="text-start">
             <div class="mb-3">
                 <label class="form-label">Username / Email</label>
-                <input type="text" name="login" class="form-control" placeholder="Enter username or email" required autocomplete="username">
+                <input type="text" name="login" class="form-control" placeholder="Enter username or email" required>
             </div>
 
             <div class="mb-4">
                 <label class="form-label">Password</label>
                 <div class="password-wrapper">
-                    <input type="password" name="password" id="passwordInput" class="form-control form-control-password" placeholder="••••••••" required autocomplete="current-password">
+                    <input type="password" name="password" id="passwordInput" class="form-control" placeholder="••••••••" required>
                     <i class="bi bi-eye-slash toggle-password" id="eyeIcon"></i>
                 </div>
             </div>
@@ -222,14 +221,9 @@
             <button type="submit" class="btn btn-login">
                 Sign In <i class="bi bi-arrow-right-short ms-1"></i>
             </button>
-
         </form>
 
         <div class="footer-section">
-            <p class="footer-text">
-                Don't have an account?
-                <a href="register.php" class="link-pastel">Create Account</a>
-            </p>
             <p class="footer-text mt-2">
                 <a href="forget_password.php" class="link-pastel">Forgot Password?</a>
             </p>

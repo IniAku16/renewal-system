@@ -163,88 +163,66 @@ $activePage = 'products';
                         <h2 class="fw-bold text-dark">Welcome, <?= htmlspecialchars($_SESSION['username'] ?? 'User') ?></h2>
                         <p class="text-muted">Kelola renewal produk Anda di sini.</p>
                     </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary px-4 py-2 shadow-sm rounded-3" data-bs-toggle="modal" data-bs-target="#createProductModal">
+                            <i class="bi bi-plus-lg me-2"></i> Add New Product
+                        </button>
+
+                        <button class="btn btn-success px-4 py-2 shadow-sm rounded-3" data-bs-toggle="modal" data-bs-target="#importExcelModal">
+                            <i class="bi bi-file-earmark-excel me-2"></i> Import from Excel
+                        </button>
+                    </div>
                 </div>
 
                 <div class="row g-3 mb-4">
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <div class="card stat-card bg-white shadow-sm p-3">
                             <div class="d-flex align-items-center">
-                                <div class="bg-primary bg-opacity-10 p-2 rounded-3 me-2 text-primary">
-                                    <i class="bi bi-box-seam fs-4"></i>
+                                <div class="bg-primary bg-opacity-10 p-3 rounded-3 me-3 text-primary">
+                                    <i class="bi bi-box-seam fs-3"></i>
                                 </div>
                                 <div>
-                                    <p class="text-muted mb-0 small">Total</p>
-                                    <h5 class="fw-bold mb-0"><?= $totalProducts ?></h5>
+                                    <p class="text-muted mb-0">Total Products</p>
+                                    <h3 class="fw-bold mb-0"><?= $totalProducts ?></h3>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <div class="card stat-card bg-white shadow-sm p-3 border-start border-4 border-success">
                             <div class="d-flex align-items-center">
-                                <div class="bg-success bg-opacity-10 p-2 rounded-3 me-2 text-success">
-                                    <i class="bi bi-check-circle fs-4"></i>
+                                <div class="bg-success bg-opacity-10 p-3 rounded-3 me-3 text-success">
+                                    <i class="bi bi-check-circle fs-3"></i>
                                 </div>
                                 <div>
-                                    <p class="text-muted mb-0 small">Active</p>
-                                    <h5 class="fw-bold mb-0 text-success"><?= $activeCount ?></h5>
+                                    <p class="text-muted mb-0">Active</p>
+                                    <h3 class="fw-bold mb-0 text-success"><?= $activeCount ?></h3>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <div class="col-md-2">
-                        <div class="card stat-card bg-white shadow-sm p-3 border-start border-4 border-info">
-                            <div class="d-flex align-items-center">
-                                <div class="bg-info bg-opacity-10 p-2 rounded-3 me-2 text-info">
-                                    <i class="bi bi-envelope-check fs-4"></i>
-                                </div>
-                                <div>
-                                    <p class="text-muted mb-0 small">Requested</p>
-                                    <h5 class="fw-bold mb-0 text-info"><?= $requestedCount ?></h5>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-2">
-                        <div class="card stat-card bg-white shadow-sm p-3 border-start border-4 border-secondary">
-                            <div class="d-flex align-items-center">
-                                <div class="bg-secondary bg-opacity-10 p-2 rounded-3 me-2 text-secondary">
-                                    <i class="bi bi-envelope-exclamation fs-4"></i>
-                                </div>
-                                <div>
-                                    <p class="text-muted mb-0 small">Not Req</p>
-                                    <h5 class="fw-bold mb-0 text-secondary"><?= $notRequestedCount ?></h5>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <div class="card stat-card bg-white shadow-sm p-3 border-start border-4 border-warning">
                             <div class="d-flex align-items-center">
-                                <div class="bg-warning bg-opacity-10 p-2 rounded-3 me-2 text-warning">
-                                    <i class="bi bi-exclamation-triangle fs-4"></i>
+                                <div class="bg-warning bg-opacity-10 p-3 rounded-3 me-3 text-warning">
+                                    <i class="bi bi-exclamation-triangle fs-3"></i>
                                 </div>
                                 <div>
-                                    <p class="text-muted mb-0 small">Expiring</p>
-                                    <h5 class="fw-bold mb-0 text-warning"><?= $expiringCount ?></h5>
+                                    <p class="text-muted mb-0">Expiring Soon</p>
+                                    <h3 class="fw-bold mb-0 text-warning"><?= $expiringCount ?></h3>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <div class="card stat-card bg-white shadow-sm p-3 border-start border-4 border-danger">
                             <div class="d-flex align-items-center">
-                                <div class="bg-danger bg-opacity-10 p-2 rounded-3 me-2 text-danger">
-                                    <i class="bi bi-x-circle fs-4"></i>
+                                <div class="bg-danger bg-opacity-10 p-3 rounded-3 me-3 text-danger">
+                                    <i class="bi bi-x-circle fs-3"></i>
                                 </div>
                                 <div>
-                                    <p class="text-muted mb-0 small">Expired</p>
-                                    <h5 class="fw-bold mb-0 text-danger"><?= $expiredCount ?></h5>
+                                    <p class="text-muted mb-0">Expired</p>
+                                    <h3 class="fw-bold mb-0 text-danger"><?= $expiredCount ?></h3>
                                 </div>
                             </div>
                         </div>
@@ -269,19 +247,6 @@ $activePage = 'products';
                         </div>
                     </form>
                 </div>
-
-                <div class="d-flex justify-content-end align-items-center mb-4">
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-primary px-4 py-2 shadow-sm rounded-3" data-bs-toggle="modal" data-bs-target="#createProductModal">
-                            <i class="bi bi-plus-lg me-2"></i> Add New Product
-                        </button>
-
-                        <button class="btn btn-success px-4 py-2 shadow-sm rounded-3" data-bs-toggle="modal" data-bs-target="#importExcelModal">
-                            <i class="bi bi-file-earmark-excel me-2"></i> Import from Excel
-                        </button>
-                    </div>
-                </div>
-
                 <div class="table-container">
                     <div class="row mb-3">
                         <div class="col-md-6">
@@ -320,8 +285,8 @@ $activePage = 'products';
                                     <th>Last Quotation</th>
                                     <th>Expired Date</th>
                                     <th>Sisa Hari</th>
-                                    <th>Request</th>
                                     <th>Status</th>
+                                    <th>Request Quotation</th>
                                     <th class="text-center">Action</th>
                                 </tr>
                             </thead>
@@ -343,6 +308,7 @@ $activePage = 'products';
                                                     <span class="text-primary small fw-bold"><?= $product['sisa_hari'] ?> days left</span>
                                                 <?php endif; ?>
                                             </td>
+                                            <td><span class="badge bg-<?= $statusClass ?> badge-status"><?= ucfirst($product['status']) ?></span></td>
                                             <td class="text-center">
                                                 <?php if ($product['request_count'] > 0): ?>
                                                     <span class="badge bg-info text-dark">
@@ -350,11 +316,10 @@ $activePage = 'products';
                                                     </span>
                                                 <?php else: ?>
                                                     <span class="badge bg-light text-muted border">
-                                                        <i class="bi bi-clock-history me-1"></i> Not Requested
+                                                        <i class="bi bi-clock-history me-1"></i> Not Yet
                                                     </span>
                                                 <?php endif; ?>
                                             </td>
-                                            <td><span class="badge bg-<?= $statusClass ?> badge-status"><?= ucfirst($product['status']) ?></span></td>
                                             <td class="text-center">
                                                 <div class="btn-group">
                                                     <button class="btn btn-sm btn-outline-warning btn-update"
