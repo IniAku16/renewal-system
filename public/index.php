@@ -6,10 +6,11 @@ header("Pragma: no-cache");
 
 require_once __DIR__ . "/../config/koneksi.php";
 require_once __DIR__ . "/../models/User.php";
+require_once __DIR__ . "/../controllers/AdminController.php"; 
 
 $userModel = new UserModel($koneksi);
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
     $login = trim($_POST['login']);
     $password = $_POST['password'];
 
@@ -56,15 +57,20 @@ if (!isset($_SESSION['id_user'])) {
 $role = $_SESSION['role'];
 $page = $_GET['page'] ?? ($role === 'admin' ? 'admin_dashboard' : 'user_dashboard');
 
-if ($role === 'admin') {
+if ($page === 'admin_dashboard') {
+    $adminCtrl = new AdminController($koneksi);
     $action = $_GET['action'] ?? 'list';
-    if ($action === 'add_user') {
-        include __DIR__ . "/../views/admin/add_user.php";
+
+    if ($action === 'list') {
+        $adminCtrl->index();
+    } elseif ($action === 'add_user') {
+        $adminCtrl->create(); 
     } elseif ($action === 'edit_user') {
         $id = $_GET['id'];
-        include __DIR__ . "/../views/admin/edit_user.php";
-    } else {
-        include __DIR__ . "/../views/admin/dashboard.php";
+        $adminCtrl->update($id); 
+    } elseif ($action === 'delete_user') {
+        $id = $_GET['id'];
+        $adminCtrl->delete($id);
     }
 } else {
     require_once __DIR__ . "/../controllers/ProductController.php";

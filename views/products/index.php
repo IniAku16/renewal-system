@@ -160,7 +160,10 @@ $activePage = 'products';
             <div class="container-fluid">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
-                        <h2 class="fw-bold text-dark">Welcome, <?= htmlspecialchars($_SESSION['username'] ?? 'User') ?></h2>
+                        <h2 class="fw-bold text-dark">
+                            Welcome, <?= htmlspecialchars($_SESSION['username'] ?? 'User') ?>
+                            <span class="fw-bold text-dark"> | <?= htmlspecialchars($_SESSION['departemen'] ?? '-') ?></span>
+                        </h2>
                         <p class="text-muted">Kelola renewal produk Anda di sini.</p>
                     </div>
                     <div class="d-flex gap-2">
