@@ -15,6 +15,9 @@ class ProductController
 
     public function __construct($koneksi)
     {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
         $this->model = new ProductModel($koneksi);
         $this->paymentModel = new PaymentModel($koneksi);
     }
@@ -22,7 +25,7 @@ class ProductController
     public function index()
     {
         $user_id = $_SESSION['id_user'];
-        $products = $this->model->getAllProducts($user_id);
+        $productsResult = $this->model->getAllProducts($user_id);
         $data = [];
 
         $activeCount = 0;
@@ -30,12 +33,14 @@ class ProductController
         $expiredCount = 0;
         $requestedCount = 0;
         $notRequestedCount = 0;
-        $expiringProducts = [];
+
+        $milestoneProducts = [];
 
         date_default_timezone_set("Asia/Jakarta");
         $today = date("Y-m-d");
+        $milestoneProducts = ['date_trigger' => $today];
 
-        while ($row = mysqli_fetch_assoc($products)) {
+        while ($row = mysqli_fetch_assoc($productsResult)) {
             $expired = $row['expired_date'];
             $request_count = $row['request_count'] ?? 0;
 
@@ -51,7 +56,7 @@ class ProductController
                 $sisa_hari = null;
             } else {
                 $diff = floor((strtotime($expired) - strtotime($today)) / 86400);
-                $sisa_hari = $diff;
+                $sisa_hari = (int)$diff;
 
                 if ($diff < 0) {
                     $status = "expired";
@@ -61,13 +66,16 @@ class ProductController
                     $status = "expiring";
                     $color = "warning";
                     $expiringCount++;
-                    if ($request_count == 0) {
-                        $expiringProducts[] = $row;
-                    }
                 } else {
                     $status = "active";
                     $color = "success";
                     $activeCount++;
+                }
+
+                if ($request_count == 0) {
+                    if ($sisa_hari == 60 || $sisa_hari == 30 || ($sisa_hari <= 3 && $sisa_hari >= -1)) {
+                        $milestoneProducts[] = $row['id'] . '|' . $sisa_hari;
+                    }
                 }
             }
 
@@ -78,30 +86,32 @@ class ProductController
         }
 
         $products = $data;
-        $totalProducts = count($products);
 
-        $adaMilestoneHariIni = false;
-        foreach ($products as $p) {
-            if (($p['request_count'] ?? 0) == 0) {
-                $hari = $p['sisa_hari'];
-                if ($hari == 60 || $hari == 30 || $hari <= 3) {
-                    $adaMilestoneHariIni = true;
-                    break;
-                }
-            }
+        $totalProducts = count($products); 
+
+        if (count($milestoneProducts) > 1) {
+            $this->attemptEmailTrigger($user_id, $milestoneProducts);
         }
 
-        if ($adaMilestoneHariIni) {
-            $tanggalHariIni = date("Y-m-d");
-             $logFile = __DIR__ . '/../cron/last_email_sent_user_' . $user_id . '.txt'; 
-            $terakhirKirim = file_exists($logFile) ? trim(file_get_contents($logFile)) : '';
-
-            if ($terakhirKirim !== $tanggalHariIni) {
-                file_put_contents($logFile, $tanggalHariIni);
-                $this->triggerEmailReminder($user_id);
-            }
-        }
         include __DIR__ . "/../views/products/index.php";
+    }
+
+    private function attemptEmailTrigger($user_id, $milestoneProducts)
+    {
+        sort($milestoneProducts);
+        $currentFingerprint = md5(implode(',', $milestoneProducts));
+
+        $lastFingerprint = $_SESSION['last_email_fingerprint'] ?? '';
+
+        if ($currentFingerprint !== $lastFingerprint) {
+
+            $_SESSION['last_email_fingerprint'] = $currentFingerprint;
+
+            $user_id_reminder = $user_id;
+            ob_start();
+            include __DIR__ . "/../cron/email_reminder.php";
+            ob_end_clean();
+        }
     }
 
     public function create()
@@ -116,28 +126,19 @@ class ProductController
             header('Content-Type: application/json');
 
             if ($this->model->isSerialNumberExists($serial, $user_id)) {
-                echo json_encode([
-                    "status" => "error",
-                    "message" => "Serial number sudah terdaftar di akun Anda"
-                ]);
+                echo json_encode(["status" => "error", "message" => "Serial number sudah terdaftar"]);
                 exit;
             }
 
             $success = $this->model->create($name, $serial, $expired, $harga, $user_id);
 
             if ($success) {
-                $today = new DateTime();
-                $expDate = new DateTime($expired);
-                $diff = (int)$today->diff($expDate)->format("%r%a");
-
-                if ($diff == 60 || $diff == 30 || $diff <= 3) {
-                    $this->triggerEmailReminder($user_id);
-                }
+                unset($_SESSION['last_email_fingerprint']);
             }
 
             echo json_encode([
                 "status"  => $success ? "success" : "error",
-                "message" => $success ? "Selamat data berhasil disimpan" : "Data gagal disimpan"
+                "message" => $success ? "Data berhasil disimpan" : "Gagal menyimpan data"
             ]);
             exit;
         }
@@ -146,50 +147,29 @@ class ProductController
     public function update($id)
     {
         $user_id = $_SESSION['id_user'];
-
         $product = $this->model->getById($id, $user_id);
 
         if (!$product) {
             header('Content-Type: application/json');
-            echo json_encode([
-                "status"  => "error",
-                "message" => "Product tidak ditemukan"
-            ]);
+            echo json_encode(["status" => "error", "message" => "Product tidak ditemukan"]);
             exit;
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $payment_status = $_POST['payment_status'] ?? null;
-            $user_id = $_SESSION['id_user'];
 
             if ($payment_status === 'done') {
-                $user_id = $_SESSION['id_user'];
                 $payment_date = $_POST['payment_date'] ?? null;
-
-                if (empty($payment_date)) {
-                    header('Content-Type: application/json');
-                    echo json_encode([
-                        "status" => "error",
-                        "message" => "Tanggal pembayaran wajib diisi"
-                    ]);
-                    exit;
-                }
-
-                if ($this->paymentModel->isPaymentExists($id, $payment_date)) {
-                    header('Content-Type: application/json');
-                    echo json_encode([
-                        "status" => "error",
-                        "message" => "Pembayaran untuk produk ini pada tanggal tersebut sudah ada. Gunakan tanggal lain."
-                    ]);
-                    exit;
-                }
-
                 $success = $this->model->updatePayment($id, $payment_date, $user_id);
+
+                if ($success) {
+                    unset($_SESSION['last_email_fingerprint']);
+                }
 
                 header('Content-Type: application/json');
                 echo json_encode([
                     "status"  => $success ? "success" : "error",
-                    "message" => $success ? "Payment berhasil disimpan" : "Gagal menyimpan payment"
+                    "message" => $success ? "Payment berhasil" : "Gagal"
                 ]);
                 exit;
             } else {
@@ -198,26 +178,25 @@ class ProductController
                 $expired = $_POST['expired_date'] ?? '';
                 $harga   = $_POST['harga_renewal'] ?? '';
 
-                if ($this->model->isSerialNumberExistsForOther($serial, $id, $user_id)) {
-                    header('Content-Type: application/json');
-                    echo json_encode([
-                        "status" => "error",
-                        "message" => "Serial number sudah dipakai product lain di akun Anda"
-                    ]);
-                    exit;
-                }
-
-
                 $success = $this->model->update($id, $name, $serial, $expired, $harga, $user_id);
+
+                if ($success) {
+                    unset($_SESSION['last_email_fingerprint']);
+                }
 
                 header('Content-Type: application/json');
                 echo json_encode([
                     "status"  => $success ? "success" : "error",
-                    "message" => $success ? "Data berhasil diupdate" : "Update gagal"
+                    "message" => $success ? "Update berhasil" : "Gagal"
                 ]);
                 exit;
             }
         }
+    }
+
+    public function checkAndTriggerReminder($expiredDate, $user_id, $force = false)
+    {
+        unset($_SESSION['last_email_fingerprint']);
     }
 
     public function history()
@@ -443,6 +422,10 @@ class ProductController
                     }
                 }
 
+                if ($successCount > 0){
+                    unset($_SESSION['last_email_fingerprint']);
+                }
+
                 echo json_encode([
                     "status" => "success",
                     "message" => "Import Selesai!\n- Berhasil: $successCount\n- Dilewati: $skipCount (Duplikat/Kosong)"
@@ -456,18 +439,10 @@ class ProductController
 
     public function delete($id)
     {
-        $user_id = $_SESSION['id_user']; 
-        $this->model->delete($id, $user_id); 
+        $user_id = $_SESSION['id_user'];
+        $this->model->delete($id, $user_id);
+        unset($_SESSION['last_email_fingerprint']);
         header("Location: index.php");
         exit;
-    }
-
-    private function triggerEmailReminder($user_id)
-    {
-        $user_id_reminder = $user_id;
-
-        ob_start();
-        include __DIR__ . "/../cron/email_reminder.php";
-        ob_end_clean();
     }
 }

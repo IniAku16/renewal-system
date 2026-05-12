@@ -22,7 +22,7 @@ class UserModel
 
     public function login()
     {
-        $query = "SELECT id_user, username, email, role, departemen, password FROM " . $this->table . " WHERE username=? OR email=?";
+        $query = "SELECT id_user, username, email, role, departemen, password FROM " . $this->table . " WHERE BINARY username=? OR BINARY email=?";
         $stmt = $this->db->prepare($query);
         $stmt->bind_param("ss", $this->username, $this->username);
         $stmt->execute();
@@ -30,6 +30,11 @@ class UserModel
 
         if ($result->num_rows > 0) {
             $row = $result->fetch_assoc();
+
+            if ($row['username'] !== $this->username && $row['email'] !== $this->username){
+                return false;
+            }
+
             if (password_verify($this->password, $row['password'])) {
                 $this->id_user = $row['id_user'];
                 $this->username = $row['username'];

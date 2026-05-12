@@ -1,31 +1,42 @@
 <?php
 date_default_timezone_set("Asia/Jakarta");
 
-$server   = "localhost";
-$username = "root";
-$password = "";
-$database = "renewal_system";
+if (!isset($koneksi)) {
+    $server   = "localhost";
+    $username = "root";
+    $password = "";
+    $database = "renewal_system";
+    $mysqli = new mysqli($server, $username, $password, $database);
+} else {
+    $mysqli = $koneksi;
+}
 
-$mysqli = new mysqli($server, $username, $password, $database);
 if ($mysqli->connect_error) {
     die("Koneksi gagal: " . $mysqli->connect_error);
 }
-
-$today = new DateTime('now', new DateTimeZone('Asia/Jakarta'));
-$today->setTime(0, 0, 0);
 
 if (!isset($user_id_reminder)) {
     return;
 }
 
-$userQuery = $mysqli->query("SELECT email, username FROM users WHERE id_user = '$user_id_reminder'");
-$userData = $userQuery->fetch_assoc();
+$today = new DateTime('now', new DateTimeZone('Asia/Jakarta'));
+$today->setTime(0, 0, 0);
+
+$stmtUser = $mysqli->prepare("SELECT email, username FROM users WHERE id_user = ?");
+$stmtUser->bind_param("i", $user_id_reminder);
+$stmtUser->execute();
+$userData = $stmtUser->get_result()->fetch_assoc();
+
+if (!$userData) return;
+
 $email_tujuan = $userData['email'];
 $nama_user = $userData['username'];
 
-$query = $mysqli->query("SELECT id, product_name, expired_date FROM products 
-                         WHERE request_count = 0 
-                         AND user_id = '$user_id_reminder'");
+$stmtProd = $mysqli->prepare("SELECT id, product_name, expired_date FROM products 
+                             WHERE request_count = 0 AND user_id = ?");
+$stmtProd->bind_param("i", $user_id_reminder);
+$stmtProd->execute();
+$query = $stmtProd->get_result();
 
 $rows = "";
 $kirim_email = false;
@@ -50,7 +61,7 @@ while ($data = $query->fetch_assoc()) {
     } elseif ($selisih_hari == 0) {
         $status = "EXPIRED";
         $badge  = "#e74c3c";
-        $text   = "HARI INI (Batas Terakhir)";
+        $text   = "HARI INI";
     } elseif ($selisih_hari <= 3) {
         $status = "URGENT";
         $badge  = "#e67e22";
@@ -160,9 +171,9 @@ if ($kirim_email) {
 
     $mail->From = "HexindoWaranty@hexindo-tbk.co.id";
     $mail->FromName = "Warranty Server System";
-    $mail->addAddress($email_tujuan); 
-    $mail->addCC("andika@hexindo-tbk.co.id");
-    $mail->addCC("ara.rhzz16@gmail.com"); 
+    $mail->addAddress($email_tujuan);
+    $mail->addCC("ara.rhzz16@gmail.com");
+    /*$mail->addCC("ara.rhzz16@gmail.com");*/
 
     $mail->isHTML(true);
     $mail->Subject = "Reminder Produk Expiring(≤ 60 Hari) - $nama_user";

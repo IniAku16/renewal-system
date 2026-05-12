@@ -1,3 +1,13 @@
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+?>
+
 <!DOCTYPE html>
 <html lang="id">
 
@@ -187,38 +197,43 @@
 <body>
 
     <div class="login-card text-center">
-        <h2>Welcome Back</h2>
+        <h2>Welcome</h2>
         <p class="subtitle">Please enter your details to sign in</p>
 
-        <?php if (isset($_GET['error'])): ?>
+        <?php if (isset($_SESSION['error_msg'])): ?>
             <div class="alert alert-custom d-flex align-items-center justify-content-center">
                 <i class="bi bi-exclamation-circle-fill me-2"></i>
-                <?= htmlspecialchars($_GET['error']) ?>
+                <?= htmlspecialchars($_SESSION['error_msg']) ?>
             </div>
+            <?php unset($_SESSION['error_msg']); ?>
         <?php endif; ?>
 
-        <?php if (isset($_GET['success'])): ?>
+        <?php if (isset($_SESSION['success_msg'])): ?>
             <div class="alert alert-success border-0 shadow-sm mb-4" style="border-radius: 14px; font-weight: 600; font-size: 0.85rem;">
                 <i class="bi bi-check-circle-fill me-2"></i>
-                <?= htmlspecialchars($_GET['success']) ?>
+                <?= htmlspecialchars($_SESSION['success_msg']) ?>
             </div>
+            <?php unset($_SESSION['success_msg']); ?>
         <?php endif; ?>
 
         <form action="../../public/index.php" method="POST" class="text-start">
+
+            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+
             <div class="mb-3">
                 <label class="form-label">Username / Email</label>
-                <input type="text" name="login" class="form-control" placeholder="Enter username or email" required>
+                <input type="text" name="login" class="form-control" placeholder="Enter username or email" required autocomplete="username">
             </div>
 
             <div class="mb-4">
                 <label class="form-label">Password</label>
                 <div class="password-wrapper">
-                    <input type="password" name="password" id="passwordInput" class="form-control" placeholder="••••••••" required>
+                    <input type="password" name="password" id="passwordInput" class="form-control" placeholder="••••••••" required autocomplete="current-password">
                     <i class="bi bi-eye-slash toggle-password" id="eyeIcon"></i>
                 </div>
             </div>
 
-            <button type="submit" class="btn btn-login">
+            <button type="submit" name="login_btn" class="btn btn-login">
                 Sign In <i class="bi bi-arrow-right-short ms-1"></i>
             </button>
         </form>

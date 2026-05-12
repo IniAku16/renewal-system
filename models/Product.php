@@ -108,7 +108,6 @@ class ProductModel
         return $result->num_rows > 0;
     }
 
-
     public function isSerialNumberExistsForOther($serial, $id, $user_id)
     {
         $sql = "SELECT id FROM products WHERE serial_number = ? AND id != ? AND user_id = ? LIMIT 1";
@@ -119,7 +118,6 @@ class ProductModel
 
         return $result->num_rows > 0;
     }
-
 
     public function getProductsByFilter($user_id, $startDate = null, $endDate = null, $year = null)
     {
