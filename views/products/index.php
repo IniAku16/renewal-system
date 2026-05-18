@@ -370,7 +370,7 @@ $activePage = 'products';
                         <div class="mb-3"> <label for="product_name" class="form-label">Product Name</label> <input type="text" class="form-control" id="product_name" name="product_name" required /> </div>
                         <div class="mb-3"> <label for="serial_number" class="form-label">Serial Number</label> <input type="text" class="form-control" id="serial_number" name="serial_number" required /> </div>
                         <div class="mb-3"> <label for="harga_renewal" class="form-label">Last Quotation</label> <input type="number" class="form-control" id="harga_renewal" name="harga_renewal" required /> </div>
-                        <div class="mb-3"> <label for="expired_date" class="form-label">Expired Date</label> <input type="date" class="form-control" id="expired_date" name="expired_date" required /> </div>
+                        <div class="mb-3"> <label for="expired_date" class="form-label">Expired Date</label> <input type="date" class="form-control" id="expired_date" name="expired_date" min="<?php echo date('Y-m-d'); ?>" required> </div>
                     </div>
                     <div class="modal-footer"> <button type="submit" class="btn btn-primary">Save</button> </div>
                 </form>
@@ -389,7 +389,7 @@ $activePage = 'products';
                         <div class="mb-3"> <label for="edit_product_name" class="form-label">Product Name</label> <input type="text" class="form-control" id="edit_product_name" name="product_name" required /> </div>
                         <div class="mb-3"> <label for="edit_serial_number" class="form-label">Serial Number</label> <input type="text" class="form-control" id="edit_serial_number" name="serial_number" required /> </div>
                         <div class="mb-3"> <label for="edit_harga_renewal" class="form-label">Last Quotation</label> <input type="number" class="form-control" id="edit_harga_renewal" name="harga_renewal" required /> </div>
-                        <div class="mb-3"> <label for="edit_expired_date" class="form-label">Expired Date</label> <input type="date" class="form-control" id="edit_expired_date" name="expired_date" required /> </div>
+                        <div class="mb-3"> <label for="edit_expired_date" class="form-label">Expired Date</label> <input type="date" class="form-control" id="edit_expired_date" name="expired_date" min="<?php echo date('Y-m-d'); ?>" required> </div>
                     </div>
                     <div class="modal-footer"> <button type="submit" class="btn btn-primary">Update</button> </div>
                 </form>
@@ -407,7 +407,7 @@ $activePage = 'products';
                     <div class="modal-body">
                         <input type="hidden" id="payment_product_id" />
                         <label for="payment_date" class="form-label"></label>
-                        <input type="date" class="form-control" id="payment_date" required />
+                        <input type="date" class="form-control" id="payment_date" min="<?php echo date('Y-m-d'); ?>" required>
                     </div>
                     <div class="modal-footer"> <button type="submit" class="btn btn-success">Save</button> </div>
                 </form>
