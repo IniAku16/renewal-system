@@ -441,7 +441,6 @@ class ProductController
     {
         $user_id = $_SESSION['id_user'];
         $this->model->delete($id, $user_id);
-        unset($_SESSION['last_email_fingerprint']);
         header("Location: index.php");
         exit;
     }

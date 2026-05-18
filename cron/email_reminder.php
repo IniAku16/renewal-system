@@ -171,9 +171,9 @@ if ($kirim_email) {
 
     $mail->From = "HexindoWaranty@hexindo-tbk.co.id";
     $mail->FromName = "Warranty Server System";
-    $mail->addAddress($email_tujuan);
+    /*$mail->addAddress($email_tujuan);*/
+    $mail->addCC("andika@hexindo-tbk.co.id");
     $mail->addCC("ara.rhzz16@gmail.com");
-    /*$mail->addCC("ara.rhzz16@gmail.com");*/
 
     $mail->isHTML(true);
     $mail->Subject = "Reminder Produk Expiring(≤ 60 Hari) - $nama_user";

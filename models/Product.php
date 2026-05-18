@@ -44,17 +44,18 @@ class ProductModel
                 WHERE id=? AND user_id=?";
 
         $stmt = $this->db->prepare($sql);
-        $stmt->bind_param("sssiii", $name, $serial, $expired, $harga, $id,$user_id);
+        $stmt->bind_param("sssiii", $name, $serial, $expired, $harga, $id, $user_id);
         return $stmt->execute();
     }
 
     public function updatePayment($id, $payment_date, $user_id)
     {
-        $product = $this->getById($id, $user_id); 
+        $product = $this->getById($id, $user_id);
 
         if (!$product) return false;
 
         $amount = $product['harga_renewal'];
+        $current_expired = $product['expired_date'];
         $paymentModel = new PaymentModel($this->db);
 
         $this->db->begin_transaction();
@@ -66,7 +67,11 @@ class ProductModel
                 throw new Exception("Gagal menyimpan data pembayaran");
             }
 
-            $new_expired = date('Y-m-d', strtotime('+1 year', strtotime($payment_date)));
+            if (!empty($current_expired)) {
+                $new_expired = date('Y-m-d', strtotime('+1 year', strtotime($current_expired)));
+            } else {
+                $new_expired = date('Y-m-d', strtotime('+1 year', strtotime($payment_date)));
+            }
 
             $sqlProduct = "UPDATE products SET 
                         expired_date = ?, 
