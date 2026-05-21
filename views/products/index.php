@@ -402,14 +402,25 @@ $activePage = 'products';
             <div class="modal-content card-custom">
                 <form id="paymentForm">
                     <div class="modal-header">
-                        <h5 class="modal-title">PO Rilis</h5> <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <h5 class="modal-title">Konfirmasi Renewal</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <input type="hidden" id="payment_product_id" />
-                        <label for="payment_date" class="form-label"></label>
-                        <input type="date" class="form-control" id="payment_date" min="<?php echo date('Y-m-d'); ?>" required>
+
+                        <div class="mb-3">
+                            <label for="payment_date" class="form-label">Tanggal BAST</label>
+                            <input type="date" class="form-control" id="payment_date" min="<?php echo date('Y-m-d'); ?>" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="payment_amount" class="form-label">Total Pembayaran</label>
+                            <input type="number" class="form-control" id="payment_amount" name="amount" placeholder="Contoh: 15000000" required />
+                        </div>
                     </div>
-                    <div class="modal-footer"> <button type="submit" class="btn btn-success">Save</button> </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-success">Update</button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -645,10 +656,12 @@ $activePage = 'products';
 
                     const id = document.getElementById('payment_product_id').value;
                     const date = document.getElementById('payment_date').value;
+                    const amount = document.getElementById('payment_amount').value;
 
                     const formData = new FormData();
                     formData.append('payment_status', 'done');
                     formData.append('payment_date', date);
+                    formData.append('amount', amount);
 
                     fetch('/renewal-system/public/index.php?action=update&id=' + id, {
                             method: 'POST',
@@ -656,7 +669,7 @@ $activePage = 'products';
                         })
                         .then(res => res.json())
                         .then(data => {
-                            alert(data.status === 'success' ? "Payment Success!" : data.message);
+                            alert(data.status === 'success' ? "Renewal Berhasil & Harga Terupdate!" : data.message);
                             if (data.status === 'success') location.reload();
                         })
                         .catch(() => alert('Error sistem!'));

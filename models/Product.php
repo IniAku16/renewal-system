@@ -48,15 +48,18 @@ class ProductModel
         return $stmt->execute();
     }
 
-    public function updatePayment($id, $payment_date, $user_id)
+    public function updatePayment($id, $payment_date, $user_id, $amount)
     {
         $product = $this->getById($id, $user_id);
 
         if (!$product) return false;
 
-        $amount = $product['harga_renewal'];
         $current_expired = $product['expired_date'];
         $paymentModel = new PaymentModel($this->db);
+
+        if ($paymentModel->isPaymentExists($id, $payment_date)) {
+            return "duplicate_date";
+        }
 
         $this->db->begin_transaction();
 
@@ -75,10 +78,11 @@ class ProductModel
 
             $sqlProduct = "UPDATE products SET 
                         expired_date = ?, 
+                        harga_renewal = ?,
                         request_count = 0 
                       WHERE id = ? AND user_id = ?";
             $stmtProd = $this->db->prepare($sqlProduct);
-            $stmtProd->bind_param("sii", $new_expired, $id, $user_id);
+            $stmtProd->bind_param("siii", $new_expired, $amount, $id, $user_id);
             $productUpdated = $stmtProd->execute();
 
             if (!$productUpdated) {

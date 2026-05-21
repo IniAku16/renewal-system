@@ -87,7 +87,7 @@ class ProductController
 
         $products = $data;
 
-        $totalProducts = count($products); 
+        $totalProducts = count($products);
 
         if (count($milestoneProducts) > 1) {
             $this->attemptEmailTrigger($user_id, $milestoneProducts);
@@ -160,7 +160,17 @@ class ProductController
 
             if ($payment_status === 'done') {
                 $payment_date = $_POST['payment_date'] ?? null;
-                $success = $this->model->updatePayment($id, $payment_date, $user_id);
+                $amount = $_POST['amount'] ?? 0;
+
+                $success = $this->model->updatePayment($id, $payment_date, $user_id, $amount);
+
+                if ($success === "duplicate_date") {
+                    echo json_encode([
+                        "status"  => "error",
+                        "message" => "Gagal! Pembayaran untuk tanggal ini sudah terdaftar. Silakan pilih tanggal lain."
+                    ]);
+                    exit;
+                }
 
                 if ($success) {
                     unset($_SESSION['last_email_fingerprint']);
@@ -422,7 +432,7 @@ class ProductController
                     }
                 }
 
-                if ($successCount > 0){
+                if ($successCount > 0) {
                     unset($_SESSION['last_email_fingerprint']);
                 }
 
