@@ -21,7 +21,7 @@
     </div>
 
     <div class="sidebar-footer">
-        <a href="/renewal-system/public/logout.php" class="sidebar-link logout-link" title="Logout">
+        <a href="/renewal-system/public/index.php?action=logout" class="sidebar-link logout-link" title="Logout">
             <i class="bi bi-box-arrow-right"></i> <span class="link-text">Logout</span>
         </a>
     </div>

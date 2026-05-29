@@ -14,5 +14,5 @@ session_unset();
 session_destroy();
 
 header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
-header("Location: ../views/auth/login.php");
+header("Location: /renewal-system/public/index.php");
 exit();

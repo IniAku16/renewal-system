@@ -216,7 +216,7 @@ if (empty($_SESSION['csrf_token'])) {
             <?php unset($_SESSION['success_msg']); ?>
         <?php endif; ?>
 
-        <form action="../../public/index.php" method="POST" class="text-start">
+        <form action="/renewal-system/public/index.php" method="POST" class="text-start">
 
             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
 
@@ -240,7 +240,7 @@ if (empty($_SESSION['csrf_token'])) {
 
         <div class="footer-section">
             <p class="footer-text mt-2">
-                <a href="forget_password.php" class="link-pastel">Forgot Password?</a>
+                <a href="/renewal-system/public/index.php?action=forgot_password" class="link-pastel">Forgot Password?</a>
             </p>
         </div>
     </div>

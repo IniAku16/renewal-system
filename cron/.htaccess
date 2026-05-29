@@ -1,1 +1,5 @@
-Deny from all
+Require all denied
+
+<Files "request.php">
+    Require all granted
+</Files>

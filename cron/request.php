@@ -17,7 +17,7 @@ if (isset($_GET['status']) && $_GET['status'] === 'sent') {
             <p style="font-size: 18px; color: #333; margin-bottom: 30px;">Request Quotation berhasil dikirim!</p>
 
             <div style="display: flex; gap: 10px; justify-content: center;">
-                <a href="http://10.87.203.183/renewal-system/views/auth/login.php"
+                <a href="../public/index.php"
                     style="background:#27ae60; color:white; padding:12px 25px; border-radius:6px; text-decoration:none; font-weight:bold; display:inline-block;">
                     Back To Login
                 </a>
@@ -52,7 +52,7 @@ if ($data['request_count'] > 0) {
             </p>
 
              <div style="display: flex; gap: 10px; justify-content: center;">
-                <a href="http://10.87.203.183/renewal-system/views/auth/login.php"
+                <a href="../public/index.php"
                     style="background:#27ae60; color:white; padding:12px 25px; border-radius:6px; text-decoration:none; font-weight:bold; display:inline-block;">
                     Back To Login
                 </a>
@@ -83,7 +83,7 @@ $mail->Port        = 25;
 $mail->CharSet     = 'UTF-8';
 
 $mail->setFrom("itrenewalsystem@hexindo-tbk.co.id", "IT Renewal");
-$mail->addAddress("andika@hexindo-tbk.co.id");
+/*$mail->addAddress("andika@hexindo-tbk.co.id");*/
 $mail->addAddress("ara.rhzz16@gmail.com");
 
 $mail->isHTML(true);

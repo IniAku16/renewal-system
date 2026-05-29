@@ -97,7 +97,7 @@ if (isset($_SESSION['id_user']) && isset($_GET['update_activity'])) {
             <a class="navbar-brand fw-bold text-primary" href="#"><i class="bi bi-shield-lock-fill me-2"></i> RENEWAL <span class="text-dark">SYSTEM</span></a>
             <div class="ms-auto d-flex align-items-center">
                 <span class="me-3 d-none d-md-block text-muted small">Halo, <b><?= $_SESSION['username'] ?></b></span>
-                <a href="logout.php" class="btn btn-outline-danger btn-sm rounded-pill px-3"><i class="bi bi-box-arrow-right me-1"></i> Logout</a>
+                <a href="/renewal-system/public/index.php?action=logout" class="btn btn-outline-danger btn-sm rounded-pill px-3"><i class="bi bi-box-arrow-right me-1"></i> Logout</a>
             </div>
         </div>
     </nav>

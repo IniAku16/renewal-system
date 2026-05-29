@@ -177,6 +177,19 @@ $activePage = 'products';
                     </div>
                 </div>
 
+                <?php if (isset($_GET['status'])): ?>
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <?= htmlspecialchars($_GET['status']) ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <?php endif; ?>
+                <?php if (isset($_GET['error'])): ?>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <?= htmlspecialchars($_GET['error']) ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <?php endif; ?>
+
                 <div class="row g-3 mb-4">
                     <div class="col-md-3">
                         <div class="card stat-card bg-white shadow-sm p-3">
@@ -330,8 +343,7 @@ $activePage = 'products';
                                                         data-name="<?= htmlspecialchars($product['product_name']) ?>"
                                                         data-serial="<?= htmlspecialchars($product['serial_number']) ?>"
                                                         data-harga="<?= $product['harga_renewal'] ?>"
-                                                        data-expired="<?= $product['expired_date'] ?>"
-                                                        data-request="<?= $product['request_count'] ?>">
+                                                        data-expired="<?= $product['expired_date'] ?>">
                                                         <i class="bi bi-pencil"></i>
                                                     </button>
                                                     <button class="btn btn-sm btn-outline-success done-btn" data-id="<?= $product['id'] ?>">
@@ -370,7 +382,7 @@ $activePage = 'products';
                         <div class="mb-3"> <label for="product_name" class="form-label">Product Name</label> <input type="text" class="form-control" id="product_name" name="product_name" required /> </div>
                         <div class="mb-3"> <label for="serial_number" class="form-label">Serial Number</label> <input type="text" class="form-control" id="serial_number" name="serial_number" required /> </div>
                         <div class="mb-3"> <label for="harga_renewal" class="form-label">Last Quotation</label> <input type="number" class="form-control" id="harga_renewal" name="harga_renewal" required /> </div>
-                        <div class="mb-3"> <label for="expired_date" class="form-label">Expired Date</label> <input type="date" class="form-control" id="expired_date" name="expired_date" min="<?php echo date('Y-m-d'); ?>" required> </div>
+                        <div class="mb-3"> <label for="expired_date" class="form-label">Expired Date</label> <input type="date" class="form-control" id="expired_date" name="expired_date" required> </div>
                     </div>
                     <div class="modal-footer"> <button type="submit" class="btn btn-primary">Save</button> </div>
                 </form>
@@ -389,7 +401,7 @@ $activePage = 'products';
                         <div class="mb-3"> <label for="edit_product_name" class="form-label">Product Name</label> <input type="text" class="form-control" id="edit_product_name" name="product_name" required /> </div>
                         <div class="mb-3"> <label for="edit_serial_number" class="form-label">Serial Number</label> <input type="text" class="form-control" id="edit_serial_number" name="serial_number" required /> </div>
                         <div class="mb-3"> <label for="edit_harga_renewal" class="form-label">Last Quotation</label> <input type="number" class="form-control" id="edit_harga_renewal" name="harga_renewal" required /> </div>
-                        <div class="mb-3"> <label for="edit_expired_date" class="form-label">Expired Date</label> <input type="date" class="form-control" id="edit_expired_date" name="expired_date" min="<?php echo date('Y-m-d'); ?>" required> </div>
+                        <div class="mb-3"> <label for="edit_expired_date" class="form-label">Expired Date</label> <input type="date" class="form-control" id="edit_expired_date" name="expired_date" required> </div>
                     </div>
                     <div class="modal-footer"> <button type="submit" class="btn btn-primary">Update</button> </div>
                 </form>
@@ -410,7 +422,7 @@ $activePage = 'products';
 
                         <div class="mb-3">
                             <label for="payment_date" class="form-label">Tanggal BAST</label>
-                            <input type="date" class="form-control" id="payment_date" min="<?php echo date('Y-m-d'); ?>" required>
+                            <input type="date" class="form-control" id="payment_date" required>
                         </div>
 
                         <div class="mb-3">
@@ -581,6 +593,7 @@ $activePage = 'products';
                     fetch('/renewal-system/public/index.php?action=create', {
                             method: 'POST',
                             body: formData,
+                            credentials: 'same-origin'
                         })
                         .then(res => res.json())
                         .then(data => {
@@ -623,6 +636,7 @@ $activePage = 'products';
                     fetch('/renewal-system/public/index.php?action=update&id=' + id, {
                             method: 'POST',
                             body: formData,
+                            credentials: 'same-origin'
                         })
                         .then(res => res.json())
                         .then(data => {
@@ -666,6 +680,7 @@ $activePage = 'products';
                     fetch('/renewal-system/public/index.php?action=update&id=' + id, {
                             method: 'POST',
                             body: formData,
+                            credentials: 'same-origin'
                         })
                         .then(res => res.json())
                         .then(data => {
@@ -684,7 +699,8 @@ $activePage = 'products';
 
                     fetch('/renewal-system/public/index.php?action=importExcel', {
                             method: 'POST',
-                            body: formData
+                            body: formData,
+                            credentials: 'same-origin'
                         })
                         .then(res => res.json())
                         .then(data => {
