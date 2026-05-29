@@ -697,19 +697,25 @@ $activePage = 'products';
                     e.preventDefault();
                     const formData = new FormData(this);
 
-                    fetch('/renewal-system/public/index.php?action=importExcel', {
+                        fetch('/renewal-system/public/index.php?action=importExcel', {
                             method: 'POST',
                             body: formData,
                             credentials: 'same-origin'
                         })
-                        .then(res => res.json())
-                        .then(data => {
-                            alert(data.message);
-                            if (data.status === 'success') {
-                                location.reload();
+                        .then(res => res.text().then(text => {
+                            try {
+                                const data = JSON.parse(text);
+                                alert(data.message || text);
+                                if (data.status === 'success') location.reload();
+                            } catch (e) {
+                                console.error('Import response not JSON', text, e);
+                                alert('Terjadi kesalahan saat import: ' + text);
                             }
-                        })
-                        .catch(() => alert('Terjadi kesalahan saat import!'));
+                        }))
+                        .catch(err => {
+                            console.error('Fetch error', err);
+                            alert('Terjadi kesalahan saat import: ' + (err.message || err));
+                        });
                 });
             }
 

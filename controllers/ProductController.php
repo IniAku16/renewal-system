@@ -361,91 +361,109 @@ class ProductController
         header('Content-Type: application/json');
         $user_id = $_SESSION['id_user'];
 
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['excel_file'])) {
-            $file = $_FILES['excel_file']['tmp_name'];
-
-            try {
-                $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file);
-                $sheetData = $spreadsheet->getActiveSheet()->toArray(null, true, true, true);
-
-                if (count($sheetData) <= 1) {
-                    echo json_encode(["status" => "error", "message" => "File kosong atau hanya berisi header"]);
-                    exit;
-                }
-
-                $headerRow = $sheetData[1];
-                $columnMapping = ['name' => null, 'serial' => null, 'expired' => null, 'harga' => null];
-
-                foreach ($headerRow as $columnIndex => $headerValue) {
-                    $headerValue = strtolower(trim($headerValue));
-                    if (strpos($headerValue, 'product') !== false || strpos($headerValue, 'nama') !== false) $columnMapping['name'] = $columnIndex;
-                    elseif (strpos($headerValue, 'serial') !== false || strpos($headerValue, 'sn') !== false) $columnMapping['serial'] = $columnIndex;
-                    elseif (strpos($headerValue, 'expired') !== false || strpos($headerValue, 'date') !== false) $columnMapping['expired'] = $columnIndex;
-                    elseif (strpos($headerValue, 'harga') !== false || strpos($headerValue, 'quotation') !== false) $columnMapping['harga'] = $columnIndex;
-                }
-
-                if (!$columnMapping['name'] || !$columnMapping['serial']) {
-                    echo json_encode(["status" => "error", "message" => "Kolom 'Nama Produk' atau 'Serial Number' tidak ditemukan."]);
-                    exit;
-                }
-
-                $successCount = 0;
-                $skipCount = 0;
-                $processedSerials = [];
-
-                foreach ($sheetData as $index => $row) {
-                    if ($index == 1) continue;
-
-                    $name = trim($row[$columnMapping['name']] ?? '');
-                    $serial = trim($row[$columnMapping['serial']] ?? '');
-
-                    if (empty($name) || empty($serial)) {
-                        $skipCount++;
-                        continue;
-                    }
-
-                    if (in_array($serial, $processedSerials)) {
-                        $skipCount++;
-                        continue;
-                    }
-
-                    if ($this->model->isSerialNumberExists($serial, $user_id)) {
-                        $skipCount++;
-                        continue;
-                    }
-
-
-                    $rawDate = $row[$columnMapping['expired']] ?? null;
-                    if (is_numeric($rawDate)) {
-                        $expired = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($rawDate)->format('Y-m-d');
-                    } else {
-                        $expired = !empty($rawDate) ? date('Y-m-d', strtotime($rawDate)) : date('Y-m-d');
-                    }
-
-                    $rawHarga = $row[$columnMapping['harga']] ?? 0;
-                    $harga = (int)preg_replace('/[^0-9]/', '', $rawHarga);
-
-                    $res = $this->model->create($name, $serial, $expired, $harga, $user_id);
-
-                    if ($res) {
-                        $successCount++;
-                        $processedSerials[] = $serial;
-                    }
-                }
-
-                if ($successCount > 0) {
-                    unset($_SESSION['last_email_fingerprint']);
-                }
-
-                echo json_encode([
-                    "status" => "success",
-                    "message" => "Import Selesai!\n- Berhasil: $successCount\n- Dilewati: $skipCount (Duplikat/Kosong)"
-                ]);
-            } catch (Exception $e) {
-                echo json_encode(["status" => "error", "message" => "Terjadi kesalahan sistem: " . $e->getMessage()]);
-            }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(["status" => "error", "message" => "Invalid request method"]);
             exit;
         }
+
+        if (!class_exists('ZipArchive')) {
+            echo json_encode(["status" => "error", "message" => "PHP extension ZipArchive tidak ditemukan. Mohon aktifkan ekstensi 'zip' (php_zip) di php.ini lalu restart Apache."]);
+            exit;
+        }
+
+        if (!isset($_FILES['excel_file'])) {
+            echo json_encode(["status" => "error", "message" => "File tidak terunggah (field 'excel_file' tidak ditemukan)"]);
+            exit;
+        }
+
+        if (!is_uploaded_file($_FILES['excel_file']['tmp_name']) || $_FILES['excel_file']['error'] !== UPLOAD_ERR_OK) {
+            $errCode = $_FILES['excel_file']['error'] ?? 'unknown';
+            echo json_encode(["status" => "error", "message" => "Upload gagal, kode error: $errCode"]);
+            exit;
+        }
+
+        $file = $_FILES['excel_file']['tmp_name'];
+
+        try {
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file);
+            $sheetData = $spreadsheet->getActiveSheet()->toArray(null, true, true, true);
+
+            if (count($sheetData) <= 1) {
+                echo json_encode(["status" => "error", "message" => "File kosong atau hanya berisi header"]);
+                exit;
+            }
+
+            $headerRow = $sheetData[1];
+            $columnMapping = ['name' => null, 'serial' => null, 'expired' => null, 'harga' => null];
+
+            foreach ($headerRow as $columnIndex => $headerValue) {
+                $headerValue = strtolower(trim($headerValue));
+                if (strpos($headerValue, 'product') !== false || strpos($headerValue, 'nama') !== false) $columnMapping['name'] = $columnIndex;
+                elseif (strpos($headerValue, 'serial') !== false || strpos($headerValue, 'sn') !== false) $columnMapping['serial'] = $columnIndex;
+                elseif (strpos($headerValue, 'expired') !== false || strpos($headerValue, 'date') !== false) $columnMapping['expired'] = $columnIndex;
+                elseif (strpos($headerValue, 'harga') !== false || strpos($headerValue, 'quotation') !== false) $columnMapping['harga'] = $columnIndex;
+            }
+
+            if (!$columnMapping['name'] || !$columnMapping['serial']) {
+                echo json_encode(["status" => "error", "message" => "Kolom 'Nama Produk' atau 'Serial Number' tidak ditemukan."]);
+                exit;
+            }
+
+            $successCount = 0;
+            $skipCount = 0;
+            $processedSerials = [];
+
+            foreach ($sheetData as $index => $row) {
+                if ($index == 1) continue;
+
+                $name = trim($row[$columnMapping['name']] ?? '');
+                $serial = trim($row[$columnMapping['serial']] ?? '');
+
+                if (empty($name) || empty($serial)) {
+                    $skipCount++;
+                    continue;
+                }
+
+                if (in_array($serial, $processedSerials)) {
+                    $skipCount++;
+                    continue;
+                }
+
+                if ($this->model->isSerialNumberExists($serial, $user_id)) {
+                    $skipCount++;
+                    continue;
+                }
+
+                $rawDate = $row[$columnMapping['expired']] ?? null;
+                if (is_numeric($rawDate)) {
+                    $expired = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($rawDate)->format('Y-m-d');
+                } else {
+                    $expired = !empty($rawDate) ? date('Y-m-d', strtotime($rawDate)) : date('Y-m-d');
+                }
+
+                $rawHarga = $row[$columnMapping['harga']] ?? 0;
+                $harga = (int)preg_replace('/[^0-9]/', '', $rawHarga);
+
+                $res = $this->model->create($name, $serial, $expired, $harga, $user_id);
+
+                if ($res) {
+                    $successCount++;
+                    $processedSerials[] = $serial;
+                }
+            }
+
+            if ($successCount > 0) {
+                unset($_SESSION['last_email_fingerprint']);
+            }
+
+            echo json_encode([
+                "status" => "success",
+                "message" => "Import Selesai!\n- Berhasil: $successCount\n- Dilewati: $skipCount (Duplikat/Kosong)"
+            ]);
+        } catch (\Exception $e) {
+            echo json_encode(["status" => "error", "message" => "Terjadi kesalahan sistem: " . $e->getMessage()]);
+        }
+        exit;
     }
 
     public function delete($id)
