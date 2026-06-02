@@ -83,7 +83,7 @@ $mail->Port        = 25;
 $mail->CharSet     = 'UTF-8';
 
 $mail->setFrom("itrenewalsystem@hexindo-tbk.co.id", "IT Renewal");
-/*$mail->addAddress("andika@hexindo-tbk.co.id");*/
+$mail->addAddress("andika@hexindo-tbk.co.id");
 $mail->addAddress("ara.rhzz16@gmail.com");
 
 $mail->isHTML(true);
