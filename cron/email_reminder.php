@@ -49,8 +49,9 @@ while ($data = $query->fetch_assoc()) {
     $interval = $today->diff($exp);
     $selisih_hari = (int)$interval->format("%r%a");
 
-    if ($selisih_hari == 60 || $selisih_hari == 30 || $selisih_hari <= 3) {
-    } else {
+    $milestones = [60, 30, 3, 2, 1, 0, -1];
+    
+    if (!in_array($selisih_hari, $milestones)) {
         continue;
     }
 
@@ -171,7 +172,7 @@ if ($kirim_email) {
 
     $mail->From = "HexindoWaranty@hexindo-tbk.co.id";
     $mail->FromName = "Warranty Server System";
-    /*$mail->addAddress($email_tujuan);*/
+    $mail->addAddress($email_tujuan);
     $mail->addCC("andika@hexindo-tbk.co.id");
     $mail->addCC("ara.rhzz16@gmail.com");
 
