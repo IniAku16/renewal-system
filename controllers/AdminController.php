@@ -1,9 +1,12 @@
 <?php
 require_once __DIR__ . "/../models/User.php";
+require_once __DIR__ . "/../helpers/PasswordValidator.php";
+require_once __DIR__ . "/../helpers/UsernameValidator.php";
 
 class AdminController
 {
     private $userModel;
+    private $db;
 
     public function __construct($koneksi)
     {
@@ -16,6 +19,7 @@ class AdminController
             exit();
         }
 
+        $this->db = $koneksi;
         $this->userModel = new UserModel($koneksi);
     }
 
@@ -25,6 +29,14 @@ class AdminController
         $users = [];
         while ($row = $usersResult->fetch_assoc()) {
             $users[] = $row;
+        }
+
+        $branches = [];
+        $branchResult = $this->db->query("SELECT nama_branch FROM tb_branch ORDER BY nama_branch");
+        if ($branchResult) {
+            while ($row = $branchResult->fetch_assoc()) {
+                $branches[] = $row['nama_branch'];
+            }
         }
 
         $totalUsers = count($users);
@@ -39,17 +51,74 @@ class AdminController
 
         $username = trim(htmlspecialchars($_POST['username']));
         $email    = filter_var($_POST['email'], FILTER_SANITIZE_EMAIL);
-        $password = $_POST['password'];
         $dept     = $_POST['departemen'];
         $role     = $_POST['role'];
+        $password = $_POST['password'] ?? '';
 
-        if (empty($username) || empty($email) || empty($password)) {
+        if (empty($username) || empty($email)) {
             echo json_encode(['status' => 'error', 'message' => 'Data tidak boleh kosong']);
             return;
         }
 
-        $res = $this->userModel->createUser($username, $email, $password, $dept, $role);
-        echo json_encode(['status' => $res ? 'success' : 'error', 'message' => $res ? 'User berhasil ditambah' : 'Gagal tambah user']);
+        // Generate a random password if admin did not provide one
+        if (empty($password)) {
+            $password = $this->generateRandomPassword();
+        }
+
+        // Validate username
+        $usernameValidation = UsernameValidator::validate($username);
+        if (!$usernameValidation['isValid']) {
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Username tidak valid',
+                'errors' => $usernameValidation['errors']
+            ]);
+            return;
+        }
+
+        // Validate password strength
+        $validation = PasswordValidator::validate($password);
+        if (!$validation['isValid']) {
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Password tidak memenuhi syarat keamanan',
+                'errors' => $validation['errors']
+            ]);
+            return;
+        }
+
+        $res = $this->userModel->createUser($username, $email, $password, $dept, $role, 1);
+        echo json_encode([
+            'status' => $res ? 'success' : 'error',
+            'message' => $res ? 'User berhasil ditambah. User harus mengubah password saat login pertama.' : 'Gagal tambah user',
+            'generatedPassword' => $res ? $password : null
+        ]);
+    }
+
+    private function generateRandomPassword($length = 12)
+    {
+        $upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $lower = 'abcdefghijklmnopqrstuvwxyz';
+        $digits = '0123456789';
+        $symbols = '!@#$%^&*()-_=+[]{}<>?';
+        $all = $upper . $lower . $digits . $symbols;
+
+        do {
+            $password = '';
+            $password .= $upper[random_int(0, strlen($upper) - 1)];
+            $password .= $lower[random_int(0, strlen($lower) - 1)];
+            $password .= $digits[random_int(0, strlen($digits) - 1)];
+            $password .= $symbols[random_int(0, strlen($symbols) - 1)];
+
+            for ($i = 4; $i < $length; $i++) {
+                $password .= $all[random_int(0, strlen($all) - 1)];
+            }
+
+            $password = str_shuffle($password);
+            $validation = PasswordValidator::validate($password);
+        } while (!$validation['isValid']);
+
+        return $password;
     }
 
     public function update($id)
@@ -62,7 +131,31 @@ class AdminController
         $role     = $_POST['role'];
         $password = !empty($_POST['password']) ? $_POST['password'] : null;
 
-        $res = $this->userModel->updateUser($id, $username, $email, $dept, $role, $password);
+        // Validate username
+        $usernameValidation = UsernameValidator::validate($username);
+        if (!$usernameValidation['isValid']) {
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Username tidak valid',
+                'errors' => $usernameValidation['errors']
+            ]);
+            return;
+        }
+
+        // Validate password strength if password is provided
+        if ($password) {
+            $validation = PasswordValidator::validate($password);
+            if (!$validation['isValid']) {
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => 'Password tidak memenuhi syarat keamanan',
+                    'errors' => $validation['errors']
+                ]);
+                return;
+            }
+        }
+
+        $res = $this->userModel->updateUser($id, $username, $email, $dept, $role, $password, $password ? 1 : null);
         echo json_encode(['status' => $res ? 'success' : 'error', 'message' => $res ? 'User berhasil diupdate' : 'Gagal update user']);
     }
 
@@ -72,3 +165,4 @@ class AdminController
         header("Location: index.php?page=admin_dashboard&status=" . ($res ? 'deleted' : 'error'));
     }
 }
+

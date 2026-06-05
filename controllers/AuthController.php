@@ -26,6 +26,12 @@
                 $_SESSION['role'] = $data['role']; 
                 $_SESSION['departemen'] = $data['departemen'];
 
+                // Check if password change is required
+                if ($data['password_change_required'] == 1) {
+                    header("Location: ../views/auth/change_password.php");
+                    exit();
+                }
+
                 if ($_SESSION['role'] == 'admin') {
                     header("Location: /renewal-system/public/index.php?page=admin_dashboard");
                 } else {

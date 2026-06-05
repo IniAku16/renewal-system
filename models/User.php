@@ -70,22 +70,23 @@ class UserModel
         return $stmt->get_result()->fetch_assoc();
     }
 
-    public function createUser($username, $email, $password, $dept, $role)
+    public function createUser($username, $email, $password, $dept, $role, $passwordChangeRequired = 1)
     {
         $hashed = password_hash($password, PASSWORD_DEFAULT);
-        $query = "INSERT INTO users (username, email, password, departemen, role) VALUES (?, ?, ?, ?, ?)";
+        $query = "INSERT INTO users (username, email, password, departemen, role, password_change_required) VALUES (?, ?, ?, ?, ?, ?)";
         $stmt = $this->db->prepare($query);
-        $stmt->bind_param("sssss", $username, $email, $hashed, $dept, $role);
+        $stmt->bind_param("sssssi", $username, $email, $hashed, $dept, $role, $passwordChangeRequired);
         return $stmt->execute();
     }
 
-    public function updateUser($id, $username, $email, $dept, $role, $password = null)
+    public function updateUser($id, $username, $email, $dept, $role, $password = null, $passwordChangeRequired = null)
     {
         if ($password) {
             $hashed = password_hash($password, PASSWORD_DEFAULT);
-            $query = "UPDATE users SET username=?, email=?, departemen=?, role=?, password=? WHERE id_user=?";
+            $changeRequired = $passwordChangeRequired !== null ? $passwordChangeRequired : 1;
+            $query = "UPDATE users SET username=?, email=?, departemen=?, role=?, password=?, password_change_required=? WHERE id_user=?";
             $stmt = $this->db->prepare($query);
-            $stmt->bind_param("sssssi", $username, $email, $dept, $role, $hashed, $id);
+            $stmt->bind_param("sssssii", $username, $email, $dept, $role, $hashed, $changeRequired, $id);
         } else {
             $query = "UPDATE users SET username=?, email=?, departemen=?, role=? WHERE id_user=?";
             $stmt = $this->db->prepare($query);

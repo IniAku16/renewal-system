@@ -147,6 +147,36 @@
             margin-bottom: 25px;
         }
 
+        .requirements {
+            background: #f8f9ff;
+            border: 1px solid #d1e3ff;
+            border-radius: 16px;
+            padding: 16px;
+            color: #1c2a3a;
+            text-align: left;
+        }
+
+        .requirement-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            color: #61708a;
+        }
+
+        .requirement-item i {
+            width: 20px;
+            font-size: 1rem;
+        }
+
+        .requirement-item.met {
+            color: #10b981;
+        }
+
+        .requirement-item.unmet {
+            color: #ef4444;
+        }
+
         .footer-section {
             margin-top: 30px;
         }
@@ -219,6 +249,29 @@
                 </div>
             </div>
 
+            <div class="requirements mb-3">
+                <div class="requirement-item" id="req-minlength">
+                    <i class="bi bi-circle"></i>
+                    <span>Minimal 8 karakter</span>
+                </div>
+                <div class="requirement-item" id="req-uppercase">
+                    <i class="bi bi-circle"></i>
+                    <span>Memiliki huruf besar (A-Z)</span>
+                </div>
+                <div class="requirement-item" id="req-lowercase">
+                    <i class="bi bi-circle"></i>
+                    <span>Memiliki huruf kecil (a-z)</span>
+                </div>
+                <div class="requirement-item" id="req-symbol">
+                    <i class="bi bi-circle"></i>
+                    <span>Memiliki simbol (!@#$%^&* dll)</span>
+                </div>
+                <div class="requirement-item" id="req-match">
+                    <i class="bi bi-circle"></i>
+                    <span>Password cocok</span>
+                </div>
+            </div>
+
             <button type="submit" class="btn btn-custom">
                 Update Password <i class="bi bi-arrow-right-short ms-1"></i>
             </button>
@@ -240,7 +293,41 @@
                 input.type = "password";
                 icon.classList.replace('bi-eye', 'bi-eye-slash');
             }
+            validatePasswordRequirements();
         }
+
+        function validatePasswordRequirements() {
+            const newPassword = document.getElementById('pass1').value;
+            const confirmPassword = document.getElementById('pass2').value;
+
+            const requirements = {
+                minlength: newPassword.length >= 8,
+                uppercase: /[A-Z]/.test(newPassword),
+                lowercase: /[a-z]/.test(newPassword),
+                symbol: /[!@#$%^&*()_+\-=\[\]{};:'",.<>?\/ ]/.test(newPassword),
+                match: newPassword === confirmPassword && confirmPassword.length > 0
+            };
+
+            for (const [key, met] of Object.entries(requirements)) {
+                const element = document.getElementById(`req-${key}`);
+                if (element) {
+                    element.classList.remove('met', 'unmet');
+                    element.classList.add(met ? 'met' : 'unmet');
+                    const icon = element.querySelector('i');
+                    icon.classList.remove('bi-circle', 'bi-check-circle', 'bi-x-circle');
+                    if (met) {
+                        icon.classList.add('bi-check-circle');
+                    } else if (key === 'match' && confirmPassword.length === 0) {
+                        icon.classList.add('bi-circle');
+                    } else {
+                        icon.classList.add('bi-x-circle');
+                    }
+                }
+            }
+        }
+
+        document.getElementById('pass1').addEventListener('input', validatePasswordRequirements);
+        document.getElementById('pass2').addEventListener('input', validatePasswordRequirements);
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

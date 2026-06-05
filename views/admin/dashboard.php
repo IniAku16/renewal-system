@@ -181,10 +181,28 @@ if (isset($_SESSION['id_user']) && isset($_GET['update_activity'])) {
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <div class="mb-3"><label class="form-label">Username</label><input type="text" name="username" class="form-control" required></div>
+                        <div class="mb-3"><label class="form-label">Username</label><input type="text" name="username" id="add_username" class="form-control" required oninput="validateAddUsername()">
+                            <div id="add_username_feedback" class="mt-2" style="font-size: 0.85rem; display: none;"></div>
+                        </div>
                         <div class="mb-3"><label class="form-label">Email</label><input type="email" name="email" class="form-control" required></div>
-                        <div class="mb-3"><label class="form-label">Password</label><input type="password" name="password" class="form-control" required></div>
-                        <div class="mb-3"><label class="form-label">Departemen</label><input type="text" name="departemen" class="form-control" required></div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="text" class="form-control" value="Akan dibuat otomatis" disabled>
+                            <div class="form-text">Password default akan dibuat secara acak dan user diminta untuk mengubahnya saat login pertama.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Cari Departemen</label>
+                            <input type="text" id="add_search_department" class="form-control" placeholder="Cari departemen..." oninput="filterDepartmentOptions('add')">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Departemen</label>
+                            <select name="departemen" id="add_dept" class="form-select" required>
+                                <option value="">Pilih departemen</option>
+                                <?php foreach ($branches as $branch): ?>
+                                    <option value="<?= htmlspecialchars($branch) ?>"><?= htmlspecialchars($branch) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
                         <div class="mb-3">
                             <label class="form-label">Role</label>
                             <select name="role" class="form-select">
@@ -212,10 +230,45 @@ if (isset($_SESSION['id_user']) && isset($_GET['update_activity'])) {
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <div class="mb-3"><label class="form-label">Username</label><input type="text" name="username" id="edit_username" class="form-control" required></div>
+                        <div class="mb-3"><label class="form-label">Username</label><input type="text" name="username" id="edit_username" class="form-control" required oninput="validateEditUsername()">
+                            <div id="edit_username_feedback" class="mt-2" style="font-size: 0.85rem; display: none;"></div>
+                        </div>
                         <div class="mb-3"><label class="form-label">Email</label><input type="email" name="email" id="edit_email" class="form-control" required></div>
-                        <div class="mb-3"><label class="form-label">Password (Kosongkan jika tidak ganti)</label><input type="password" name="password" class="form-control"></div>
-                        <div class="mb-3"><label class="form-label">Departemen</label><input type="text" name="departemen" id="edit_dept" class="form-control" required></div>
+                        <div class="mb-3">
+                            <label class="form-label">Password (Kosongkan jika tidak ganti)</label>
+                            <input type="password" name="password" id="edit_password" class="form-control" oninput="validateEditPassword()">
+                            <div id="edit_password_requirements" class="mt-3" style="font-size: 0.85rem; display: none;">
+                                <div class="requirement-item" id="edit_req_minlength">
+                                    <i class="bi bi-circle"></i>
+                                    <span>Minimal 8 karakter</span>
+                                </div>
+                                <div class="requirement-item" id="edit_req_uppercase">
+                                    <i class="bi bi-circle"></i>
+                                    <span>Huruf besar (A-Z)</span>
+                                </div>
+                                <div class="requirement-item" id="edit_req_lowercase">
+                                    <i class="bi bi-circle"></i>
+                                    <span>Huruf kecil (a-z)</span>
+                                </div>
+                                <div class="requirement-item" id="edit_req_symbol">
+                                    <i class="bi bi-circle"></i>
+                                    <span>Simbol (!@#$%^&* dll)</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Cari Departemen</label>
+                            <input type="text" id="edit_search_department" class="form-control" placeholder="Cari departemen..." oninput="filterDepartmentOptions('edit')">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Departemen</label>
+                            <select name="departemen" id="edit_dept" class="form-select" required>
+                                <option value="">Pilih departemen</option>
+                                <?php foreach ($branches as $branch): ?>
+                                    <option value="<?= htmlspecialchars($branch) ?>"><?= htmlspecialchars($branch) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
                         <div class="mb-3">
                             <label class="form-label">Role</label>
                             <select name="role" id="edit_role" class="form-select">
@@ -240,6 +293,8 @@ if (isset($_SESSION['id_user']) && isset($_GET['update_activity'])) {
                     document.getElementById('edit_id_user').value = this.dataset.id;
                     document.getElementById('edit_username').value = this.dataset.username;
                     document.getElementById('edit_email').value = this.dataset.email;
+                    document.getElementById('edit_search_department').value = '';
+                    filterDepartmentOptions('edit');
                     document.getElementById('edit_dept').value = this.dataset.dept;
                     document.getElementById('edit_role').value = this.dataset.role;
                     new bootstrap.Modal(document.getElementById('editUserModal')).show();
@@ -269,6 +324,13 @@ if (isset($_SESSION['id_user']) && isset($_GET['update_activity'])) {
         document.addEventListener('DOMContentLoaded', function() {
             initEditButtons();
 
+            const addUserModal = document.getElementById('addUserModal');
+            addUserModal.addEventListener('show.bs.modal', function () {
+                document.getElementById('add_search_department').value = '';
+                filterDepartmentOptions('add');
+                document.getElementById('add_dept').value = '';
+            });
+
             setInterval(refreshData, 5000);
 
             document.getElementById('addUserForm').onsubmit = function(e) {
@@ -278,8 +340,18 @@ if (isset($_SESSION['id_user']) && isset($_GET['update_activity'])) {
                         body: new FormData(this)
                     })
                     .then(res => res.json()).then(data => {
-                        alert(data.message);
-                        if (data.status === 'success') location.reload();
+                        if (data.status === 'error' && data.errors) {
+                            alert(data.message + ':\n\n' + data.errors.join('\n'));
+                        } else if (data.status === 'success') {
+                            let message = data.message;
+                            if (data.generatedPassword) {
+                                message += '\nPassword default: ' + data.generatedPassword;
+                            }
+                            alert(message);
+                            location.reload();
+                        } else {
+                            alert(data.message);
+                        }
                     });
             };
 
@@ -291,8 +363,12 @@ if (isset($_SESSION['id_user']) && isset($_GET['update_activity'])) {
                         body: new FormData(this)
                     })
                     .then(res => res.json()).then(data => {
-                        alert(data.message);
-                        if (data.status === 'success') location.reload();
+                        if (data.status === 'error' && data.errors) {
+                            alert(data.message + ':\n\n' + data.errors.join('\n'));
+                        } else {
+                            alert(data.message);
+                            if (data.status === 'success') location.reload();
+                        }
                     });
             };
         });
@@ -304,7 +380,145 @@ if (isset($_SESSION['id_user']) && isset($_GET['update_activity'])) {
                 }).then(() => location.reload());
             }
         }
+
+        function validateAddPassword() {
+            const password = document.getElementById('add_password').value;
+            updatePasswordRequirements('add', password);
+        }
+
+        function validateEditPassword() {
+            const password = document.getElementById('edit_password').value;
+            if (password.length > 0) {
+                document.getElementById('edit_password_requirements').style.display = 'block';
+                updatePasswordRequirements('edit', password);
+            } else {
+                document.getElementById('edit_password_requirements').style.display = 'none';
+            }
+        }
+
+        function updatePasswordRequirements(prefix, password) {
+            const requirements = {
+                minlength: password.length >= 8,
+                uppercase: /[A-Z]/.test(password),
+                lowercase: /[a-z]/.test(password),
+                symbol: /[!@#$%^&*()_+\-=\[\]{};:'",.< >?\/ ]/.test(password)
+            };
+
+            for (const [key, met] of Object.entries(requirements)) {
+                const element = document.getElementById(`${prefix}_req_${key}`);
+                if (element) {
+                    element.classList.remove('met', 'unmet');
+                    element.classList.add(met ? 'met' : 'unmet');
+
+                    const icon = element.querySelector('i');
+                    icon.classList.remove('bi-circle', 'bi-check-circle', 'bi-x-circle');
+                    icon.classList.add(met ? 'bi-check-circle' : 'bi-x-circle');
+                }
+            }
+        }
+
+        function validateAddUsername() {
+            const username = document.getElementById('add_username').value;
+            validateUsername('add', username);
+        }
+
+        function validateEditUsername() {
+            const username = document.getElementById('edit_username').value;
+            validateUsername('edit', username);
+        }
+
+        function validateUsername(prefix, username) {
+            const feedback = document.getElementById(`${prefix}_username_feedback`);
+            const errors = [];
+
+            // Check for symbols
+            if (!/^[a-zA-Z0-9._-]*$/.test(username)) {
+                errors.push('❌ Username tidak boleh mengandung simbol (hanya huruf, angka, titik, underscore, dan strip yang diizinkan)');
+            } else if (username.length > 0) {
+                errors.push('✓ Format username valid');
+            }
+
+            // Check length
+            if (username.length > 0 && username.length < 3) {
+                errors.push('❌ Username minimal 3 karakter');
+            } else if (username.length >= 3 && username.length <= 50) {
+                if (!/^[a-zA-Z0-9._-]*$/.test(username)) {
+                    // Error already added above
+                } else {
+                    // This is ok
+                }
+            } else if (username.length > 50) {
+                errors.push('❌ Username maksimal 50 karakter');
+            }
+
+            if (errors.length > 0) {
+                feedback.style.display = 'block';
+                feedback.innerHTML = errors.join('<br>');
+                feedback.className = 'mt-2';
+                feedback.style.fontSize = '0.85rem';
+            } else {
+                feedback.style.display = 'none';
+            }
+        }
+
+        function filterDepartmentOptions(prefix) {
+            const searchValue = document.getElementById(`${prefix}_search_department`).value.toLowerCase();
+            const select = document.getElementById(`${prefix}_dept`);
+            const options = select.querySelectorAll('option');
+            let hasVisibleOption = false;
+
+            options.forEach(option => {
+                if (option.value === '') {
+                    option.hidden = false;
+                    option.disabled = false;
+                    return;
+                }
+                const text = option.textContent.toLowerCase();
+                const matches = text.includes(searchValue);
+                option.hidden = !matches;
+                option.disabled = !matches;
+                if (matches) {
+                    hasVisibleOption = true;
+                }
+            });
+
+            if (!hasVisibleOption) {
+                select.value = '';
+            }
+        }
     </script>
+    <style>
+        .requirement-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            color: #666;
+            padding: 5px 0;
+        }
+
+        .requirement-item i {
+            width: 20px;
+            margin-right: 8px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .requirement-item.met {
+            color: #10b981;
+        }
+
+        .requirement-item.met i {
+            color: #10b981;
+        }
+
+        .requirement-item.unmet {
+            color: #ef4444;
+        }
+
+        .requirement-item.unmet i {
+            color: #ef4444;
+        }
+    </style>
 </body>
 
 </html>

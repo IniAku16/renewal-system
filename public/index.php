@@ -8,6 +8,7 @@ header("X-Content-Type-Options: nosniff");
 
 require_once __DIR__ . "/../config/koneksi.php";
 require_once __DIR__ . "/../models/User.php";
+require_once __DIR__ . "/../helpers/PasswordValidator.php";
 
 $userModel = new UserModel($koneksi);
 
@@ -46,8 +47,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $newPassword = $_POST['new_password'];
         $confirmPassword = $_POST['confirm_password'];
 
+        if (empty($identifier) || empty($newPassword) || empty($confirmPassword)) {
+            header("Location: index.php?action=forgot_password&error=" . urlencode("Semua field harus diisi."));
+            exit();
+        }
+
         if ($newPassword !== $confirmPassword) {
             header("Location: index.php?action=forgot_password&error=" . urlencode("Password confirmation does not match!"));
+            exit();
+        }
+
+        $validation = PasswordValidator::validate($newPassword);
+        if (!$validation['isValid']) {
+            header("Location: index.php?action=forgot_password&error=" . urlencode(implode(' ', $validation['errors'])));
             exit();
         }
 
