@@ -32,6 +32,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             $userModel->updateLastActivity($data['id_user']);
 
+            if ($data['password_change_required'] == 1) {
+                header("Location: index.php?page=change_password");
+                exit();
+            }
+
             $redirect = ($data['role'] === 'admin') ? 'admin_dashboard' : 'user_dashboard';
             header("Location: index.php?page=" . $redirect);
             exit();
@@ -88,12 +93,19 @@ if (!isset($_SESSION['id_user'])) {
 $role = $_SESSION['role'];
 $page = $_GET['page'] ?? ($role === 'admin' ? 'admin_dashboard' : 'user_dashboard');
 
+$currentUser = $userModel->getUserById($_SESSION['id_user']);
+if ($currentUser && $currentUser['password_change_required'] == 1 && $page !== 'change_password') {
+    header("Location: index.php?page=change_password");
+    exit();
+}
+
 $access_map = [
-    'admin_dashboard' => ['admin'],
-    'user_dashboard'  => ['user'],
+    'admin_dashboard'  => ['admin'],
+    'user_dashboard'   => ['user'],
+    'change_password'  => ['admin', 'user'],
 ];
 
-if (!isset($access_map[$page]) || !in_array($role, $access_map[$page])) {
+if ($page !== 'change_password' && (!isset($access_map[$page]) || !in_array($role, $access_map[$page]))) {
     $redirect = ($role === 'admin') ? 'admin_dashboard' : 'user_dashboard';
     header("Location: index.php?page=" . $redirect);
     exit();
@@ -101,6 +113,11 @@ if (!isset($access_map[$page]) || !in_array($role, $access_map[$page])) {
 
 $action = $_GET['action'] ?? 'index';
 $id = isset($_GET['id']) ? (int)$_GET['id'] : null;
+
+if ($page === 'change_password') {
+    include __DIR__ . "/../views/auth/change_password.php";
+    exit();
+}
 
 if ($action === 'logout') {
     if (isset($_SESSION['id_user'])) {

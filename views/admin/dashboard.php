@@ -191,17 +191,13 @@ if (isset($_SESSION['id_user']) && isset($_GET['update_activity'])) {
                             <div class="form-text">Password default akan dibuat secara acak dan user diminta untuk mengubahnya saat login pertama.</div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Cari Departemen</label>
-                            <input type="text" id="add_search_department" class="form-control" placeholder="Cari departemen..." oninput="filterDepartmentOptions('add')">
-                        </div>
-                        <div class="mb-3">
                             <label class="form-label">Departemen</label>
-                            <select name="departemen" id="add_dept" class="form-select" required>
-                                <option value="">Pilih departemen</option>
+                            <input type="text" name="departemen" id="add_dept" list="departemen_list_add" class="form-control" placeholder="Pilih departemen atau ketik untuk mencari..." required autocomplete="off">
+                            <datalist id="departemen_list_add">
                                 <?php foreach ($branches as $branch): ?>
-                                    <option value="<?= htmlspecialchars($branch) ?>"><?= htmlspecialchars($branch) ?></option>
+                                    <option value="<?= htmlspecialchars($branch) ?>"></option>
                                 <?php endforeach; ?>
-                            </select>
+                            </datalist>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Role</label>
@@ -216,6 +212,28 @@ if (isset($_SESSION['id_user']) && isset($_GET['update_activity'])) {
                         <button type="submit" class="btn btn-primary w-100">Simpan User</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="passwordGeneratedModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content card-custom">
+                <div class="modal-header border-0">
+                    <h5 class="fw-bold">Password Default Dibuat</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Salin password berikut dan beritahu kepada pengguna:</p>
+                    <div class="input-group mb-2">
+                        <input type="text" id="generated_password_value" class="form-control" readonly>
+                        <button class="btn btn-outline-secondary" type="button" id="copyGeneratedPasswordBtn">Salin</button>
+                    </div>
+                    <div id="generated_password_copy_feedback" class="form-text text-success" style="display:none;">Password berhasil disalin ke clipboard.</div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">Tutup</button>
+                </div>
             </div>
         </div>
     </div>
@@ -257,17 +275,13 @@ if (isset($_SESSION['id_user']) && isset($_GET['update_activity'])) {
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Cari Departemen</label>
-                            <input type="text" id="edit_search_department" class="form-control" placeholder="Cari departemen..." oninput="filterDepartmentOptions('edit')">
-                        </div>
-                        <div class="mb-3">
                             <label class="form-label">Departemen</label>
-                            <select name="departemen" id="edit_dept" class="form-select" required>
-                                <option value="">Pilih departemen</option>
+                            <input type="text" name="departemen" id="edit_dept" list="departemen_list_edit" class="form-control" placeholder="Pilih departemen atau ketik untuk mencari..." required autocomplete="off">
+                            <datalist id="departemen_list_edit">
                                 <?php foreach ($branches as $branch): ?>
-                                    <option value="<?= htmlspecialchars($branch) ?>"><?= htmlspecialchars($branch) ?></option>
+                                    <option value="<?= htmlspecialchars($branch) ?>"></option>
                                 <?php endforeach; ?>
-                            </select>
+                            </datalist>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Role</label>
@@ -293,8 +307,6 @@ if (isset($_SESSION['id_user']) && isset($_GET['update_activity'])) {
                     document.getElementById('edit_id_user').value = this.dataset.id;
                     document.getElementById('edit_username').value = this.dataset.username;
                     document.getElementById('edit_email').value = this.dataset.email;
-                    document.getElementById('edit_search_department').value = '';
-                    filterDepartmentOptions('edit');
                     document.getElementById('edit_dept').value = this.dataset.dept;
                     document.getElementById('edit_role').value = this.dataset.role;
                     new bootstrap.Modal(document.getElementById('editUserModal')).show();
@@ -325,10 +337,32 @@ if (isset($_SESSION['id_user']) && isset($_GET['update_activity'])) {
             initEditButtons();
 
             const addUserModal = document.getElementById('addUserModal');
+            const addUserModalInstance = new bootstrap.Modal(addUserModal);
+            const passwordGeneratedModal = document.getElementById('passwordGeneratedModal');
+            const passwordGeneratedModalInstance = new bootstrap.Modal(passwordGeneratedModal);
+            const copyGeneratedPasswordBtn = document.getElementById('copyGeneratedPasswordBtn');
+            const generatedPasswordValue = document.getElementById('generated_password_value');
+            const generatedPasswordCopyFeedback = document.getElementById('generated_password_copy_feedback');
+
             addUserModal.addEventListener('show.bs.modal', function () {
-                document.getElementById('add_search_department').value = '';
-                filterDepartmentOptions('add');
                 document.getElementById('add_dept').value = '';
+            });
+
+            passwordGeneratedModal.addEventListener('hidden.bs.modal', function () {
+                location.reload();
+            });
+
+            copyGeneratedPasswordBtn.addEventListener('click', function () {
+                const passwordText = generatedPasswordValue.value;
+                if (!passwordText) return;
+                navigator.clipboard.writeText(passwordText).then(() => {
+                    generatedPasswordCopyFeedback.style.display = 'block';
+                    setTimeout(() => {
+                        generatedPasswordCopyFeedback.style.display = 'none';
+                    }, 2500);
+                }).catch(() => {
+                    alert('Salin password gagal. Silakan salin secara manual.');
+                });
             });
 
             setInterval(refreshData, 5000);
@@ -343,12 +377,16 @@ if (isset($_SESSION['id_user']) && isset($_GET['update_activity'])) {
                         if (data.status === 'error' && data.errors) {
                             alert(data.message + ':\n\n' + data.errors.join('\n'));
                         } else if (data.status === 'success') {
-                            let message = data.message;
                             if (data.generatedPassword) {
-                                message += '\nPassword default: ' + data.generatedPassword;
+                                document.getElementById('addUserForm').reset();
+                                addUserModalInstance.hide();
+                                generatedPasswordValue.value = data.generatedPassword;
+                                generatedPasswordCopyFeedback.style.display = 'none';
+                                passwordGeneratedModalInstance.show();
+                            } else {
+                                alert(data.message);
+                                location.reload();
                             }
-                            alert(message);
-                            location.reload();
                         } else {
                             alert(data.message);
                         }
@@ -461,31 +499,6 @@ if (isset($_SESSION['id_user']) && isset($_GET['update_activity'])) {
             }
         }
 
-        function filterDepartmentOptions(prefix) {
-            const searchValue = document.getElementById(`${prefix}_search_department`).value.toLowerCase();
-            const select = document.getElementById(`${prefix}_dept`);
-            const options = select.querySelectorAll('option');
-            let hasVisibleOption = false;
-
-            options.forEach(option => {
-                if (option.value === '') {
-                    option.hidden = false;
-                    option.disabled = false;
-                    return;
-                }
-                const text = option.textContent.toLowerCase();
-                const matches = text.includes(searchValue);
-                option.hidden = !matches;
-                option.disabled = !matches;
-                if (matches) {
-                    hasVisibleOption = true;
-                }
-            });
-
-            if (!hasVisibleOption) {
-                select.value = '';
-            }
-        }
     </script>
     <style>
         .requirement-item {

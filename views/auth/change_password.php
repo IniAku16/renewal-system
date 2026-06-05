@@ -27,14 +27,10 @@ $error = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $currentPassword = $_POST['current_password'] ?? '';
     $newPassword = $_POST['new_password'] ?? '';
     $confirmPassword = $_POST['confirm_password'] ?? '';
 
-    // Validate current password
-    if (!password_verify($currentPassword, $user['password'])) {
-        $error = 'Password saat ini salah!';
-    } elseif (empty($newPassword)) {
+    if (empty($newPassword)) {
         $error = 'Password baru tidak boleh kosong!';
     } elseif ($newPassword !== $confirmPassword) {
         $error = 'Password baru dan konfirmasi tidak cocok!';
@@ -50,10 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bind_param("si", $hashed, $_SESSION['id_user']);
 
             if ($stmt->execute()) {
-                $success = 'Password berhasil diubah! Silakan login kembali.';
-                $_SESSION = [];
-                session_destroy();
-                header("Refresh: 2; Location: login.php");
+                $success = 'Password berhasil diubah! Mengarahkan ke dashboard...';
+                header("Location: /renewal-system/public/index.php?page=" . ($user['role'] === 'admin' ? 'admin_dashboard' : 'user_dashboard'));
                 exit;
             } else {
                 $error = 'Gagal mengubah password!';
@@ -149,13 +143,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .toggle-password {
             position: absolute;
             right: 15px;
-            top: 38px;
+            top: 50%;
+            transform: translateY(-50%);
             background: none;
             border: none;
             color: #7f9bb3;
             cursor: pointer;
             font-size: 18px;
             transition: color 0.3s ease;
+            padding: 0;
+            line-height: 1;
         }
 
         .toggle-password:hover {
@@ -270,32 +267,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <form method="POST" id="changePasswordForm">
             <div class="form-group">
-                <label for="current_password" class="form-label">Password Saat Ini</label>
-                <div class="password-input-wrapper">
-                    <input type="password" class="form-control" id="current_password" name="current_password" required>
-                    <button type="button" class="toggle-password" onclick="togglePassword('current_password')">
-                        <i class="bi bi-eye"></i>
-                    </button>
-                </div>
-            </div>
-
-            <div class="form-group">
                 <label for="new_password" class="form-label">Password Baru</label>
                 <div class="password-input-wrapper">
                     <input type="password" class="form-control" id="new_password" name="new_password" required
                         oninput="validatePasswordRequirements()">
                     <button type="button" class="toggle-password" onclick="togglePassword('new_password')">
-                        <i class="bi bi-eye"></i>
-                    </button>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="confirm_password" class="form-label">Konfirmasi Password Baru</label>
-                <div class="password-input-wrapper">
-                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" required
-                        oninput="validatePasswordRequirements()">
-                    <button type="button" class="toggle-password" onclick="togglePassword('confirm_password')">
                         <i class="bi bi-eye"></i>
                     </button>
                 </div>
@@ -318,6 +294,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <i class="bi bi-circle"></i>
                     <span>Memiliki simbol (!@#$%^&* dll)</span>
                 </div>
+            </div>
+
+            <div class="form-group">
+                <label for="confirm_password" class="form-label">Konfirmasi Password Baru</label>
+                <div class="password-input-wrapper">
+                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" required
+                        oninput="validatePasswordRequirements()">
+                    <button type="button" class="toggle-password" onclick="togglePassword('confirm_password')">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="requirements match-requirement">
                 <div class="requirement-item" id="req-match">
                     <i class="bi bi-circle"></i>
                     <span>Password cocok</span>
@@ -355,8 +345,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 minlength: newPassword.length >= 8,
                 uppercase: /[A-Z]/.test(newPassword),
                 lowercase: /[a-z]/.test(newPassword),
-                symbol: /[!@#$%^&*()_+\-=\[\]{};:'",.< >?\/ ]/.test(newPassword),
-                match: newPassword === confirmPassword && confirmPassword.length > 0
+                symbol: /[!@#$%^&*()_+\-=[\]{};:'",.< >?/ ]/.test(newPassword)
             };
 
             // Update UI for each requirement
@@ -364,26 +353,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 const element = document.getElementById(`req-${key}`);
                 if (element) {
                     element.classList.remove('met', 'unmet');
-                    if (key === 'match' && confirmPassword.length === 0) {
-                        element.classList.add('unmet');
-                    } else {
-                        element.classList.add(met ? 'met' : 'unmet');
-                    }
+                    element.classList.add(met ? 'met' : 'unmet');
 
                     const icon = element.querySelector('i');
                     icon.classList.remove('bi-circle', 'bi-check-circle', 'bi-x-circle');
-                    if (met) {
-                        icon.classList.add('bi-check-circle');
-                    } else if (key === 'match' && confirmPassword.length === 0) {
-                        icon.classList.add('bi-circle');
-                    } else {
-                        icon.classList.add('bi-x-circle');
-                    }
+                    icon.classList.add(met ? 'bi-check-circle' : 'bi-x-circle');
                 }
             }
 
-            // Enable button only if all requirements met
-            const allMet = Object.values(requirements).every(req => req);
+            const matchRequirement = newPassword === confirmPassword && confirmPassword.length > 0;
+            const matchElement = document.getElementById('req-match');
+            if (matchElement) {
+                matchElement.classList.remove('met', 'unmet');
+                if (confirmPassword.length === 0) {
+                    matchElement.classList.add('unmet');
+                    const icon = matchElement.querySelector('i');
+                    icon.classList.remove('bi-circle', 'bi-check-circle', 'bi-x-circle');
+                    icon.classList.add('bi-circle');
+                } else {
+                    matchElement.classList.add(matchRequirement ? 'met' : 'unmet');
+                    const icon = matchElement.querySelector('i');
+                    icon.classList.remove('bi-circle', 'bi-check-circle', 'bi-x-circle');
+                    icon.classList.add(matchRequirement ? 'bi-check-circle' : 'bi-x-circle');
+                }
+            }
+
+            const allMet = Object.values(requirements).every(req => req) && matchRequirement;
             document.getElementById('submitBtn').disabled = !allMet;
         }
 
