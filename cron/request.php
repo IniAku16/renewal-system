@@ -51,7 +51,7 @@ if ($data['request_count'] > 0) {
                 Produk <strong><?= htmlspecialchars($data['product_name']) ?></strong> sebelumnya sudah pernah dimintakan quotation.
             </p>
 
-             <div style="display: flex; gap: 10px; justify-content: center;">
+            <div style="display: flex; gap: 10px; justify-content: center;">
                 <a href="../public/index.php"
                     style="background:#27ae60; color:white; padding:12px 25px; border-radius:6px; text-decoration:none; font-weight:bold; display:inline-block;">
                     Back To Login

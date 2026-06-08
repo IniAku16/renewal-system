@@ -97,23 +97,21 @@ class ProductController
         include __DIR__ . "/../views/products/index.php";
     }
 
-    private function attemptEmailTrigger($user_id, $milestoneProducts)
-    {
-        sort($milestoneProducts);
-        $currentFingerprint = md5(implode(',', $milestoneProducts));
+private function attemptEmailTrigger($user_id, $milestoneProducts)
+{
+    sort($milestoneProducts);
+    $currentFingerprint = md5(implode(',', $milestoneProducts));
 
-        $lastFingerprint = $_SESSION['last_email_fingerprint'] ?? '';
+    if (!$this->model->hasEmailBeenSentToday($user_id, $currentFingerprint)) {
+        
+        $user_id_reminder = $user_id;
+        ob_start();
+        include __DIR__ . "/../cron/email_reminder.php";
+        ob_end_clean();
 
-        if ($currentFingerprint !== $lastFingerprint) {
-
-            $_SESSION['last_email_fingerprint'] = $currentFingerprint;
-
-            $user_id_reminder = $user_id;
-            ob_start();
-            include __DIR__ . "/../cron/email_reminder.php";
-            ob_end_clean();
-        }
+        $this->model->logEmailSent($user_id, $currentFingerprint);
     }
+}
 
     public function create()
     {
@@ -132,10 +130,6 @@ class ProductController
             }
 
             $success = $this->model->create($name, $serial, $expired, $harga, $user_id);
-
-            if ($success) {
-                unset($_SESSION['last_email_fingerprint']);
-            }
 
             echo json_encode([
                 "status"  => $success ? "success" : "error",
@@ -173,10 +167,6 @@ class ProductController
                     exit;
                 }
 
-                if ($success) {
-                    unset($_SESSION['last_email_fingerprint']);
-                }
-
                 header('Content-Type: application/json');
                 echo json_encode([
                     "status"  => $success ? "success" : "error",
@@ -191,10 +181,6 @@ class ProductController
 
                 $success = $this->model->update($id, $name, $serial, $expired, $harga, $user_id);
 
-                if ($success) {
-                    unset($_SESSION['last_email_fingerprint']);
-                }
-
                 header('Content-Type: application/json');
                 echo json_encode([
                     "status"  => $success ? "success" : "error",
@@ -203,11 +189,6 @@ class ProductController
                 exit;
             }
         }
-    }
-
-    public function checkAndTriggerReminder($expiredDate, $user_id, $force = false)
-    {
-        unset($_SESSION['last_email_fingerprint']);
     }
 
     public function history()
@@ -450,10 +431,6 @@ class ProductController
                     $successCount++;
                     $processedSerials[] = $serial;
                 }
-            }
-
-            if ($successCount > 0) {
-                unset($_SESSION['last_email_fingerprint']);
             }
 
             echo json_encode([

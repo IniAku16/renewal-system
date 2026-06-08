@@ -50,7 +50,7 @@ while ($data = $query->fetch_assoc()) {
     $selisih_hari = (int)$interval->format("%r%a");
 
     $milestones = [60, 30, 3, 2, 1, 0, -1];
-    
+
     if (!in_array($selisih_hari, $milestones)) {
         continue;
     }

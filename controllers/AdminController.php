@@ -53,45 +53,28 @@ class AdminController
         $email    = filter_var($_POST['email'], FILTER_SANITIZE_EMAIL);
         $dept     = $_POST['departemen'];
         $role     = $_POST['role'];
-        $password = $_POST['password'] ?? '';
 
         if (empty($username) || empty($email)) {
             echo json_encode(['status' => 'error', 'message' => 'Data tidak boleh kosong']);
             return;
         }
 
-        // Generate a random password if admin did not provide one
-        if (empty($password)) {
-            $password = $this->generateRandomPassword();
-        }
+        $password = $this->generateRandomPassword();
 
-        // Validate username
         $usernameValidation = UsernameValidator::validate($username);
         if (!$usernameValidation['isValid']) {
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'Username tidak valid',
-                'errors' => $usernameValidation['errors']
-            ]);
-            return;
-        }
-
-        // Validate password strength
-        $validation = PasswordValidator::validate($password);
-        if (!$validation['isValid']) {
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'Password tidak memenuhi syarat keamanan',
-                'errors' => $validation['errors']
-            ]);
+            echo json_encode(['status' => 'error', 'message' => 'Username tidak valid', 'errors' => $usernameValidation['errors']]);
             return;
         }
 
         $res = $this->userModel->createUser($username, $email, $password, $dept, $role, 1);
+
         echo json_encode([
             'status' => $res ? 'success' : 'error',
-            'message' => $res ? 'User berhasil ditambah. User harus mengubah password saat login pertama.' : 'Gagal tambah user',
-            'generatedPassword' => $res ? $password : null
+            'message' => $res ? 'User berhasil ditambah' : 'Gagal tambah user ke database',
+            'generatedPassword' => $res ? $password : null,
+            'username' => $res ? $username : null,
+            'email' => $res ? $email : null
         ]);
     }
 
@@ -131,7 +114,6 @@ class AdminController
         $role     = $_POST['role'];
         $password = !empty($_POST['password']) ? $_POST['password'] : null;
 
-        // Validate username
         $usernameValidation = UsernameValidator::validate($username);
         if (!$usernameValidation['isValid']) {
             echo json_encode([
@@ -142,7 +124,6 @@ class AdminController
             return;
         }
 
-        // Validate password strength if password is provided
         if ($password) {
             $validation = PasswordValidator::validate($password);
             if (!$validation['isValid']) {
@@ -165,4 +146,3 @@ class AdminController
         header("Location: index.php?page=admin_dashboard&status=" . ($res ? 'deleted' : 'error'));
     }
 }
-

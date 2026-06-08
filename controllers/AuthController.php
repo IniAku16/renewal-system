@@ -16,17 +16,16 @@
 
         if ($data) {
 
-            if ($data ['username'] !== $login && $data['email'] !==$login){
+            if ($data['username'] !== $login && $data['email'] !== $login) {
                 header("Location: ../views/auth/login.php?error=Username atau Email tidak sesuai (Perhatikan Kembali Besar Kecil Huruf!)");
                 exit;
             }
             if (password_verify($password, $data['password'])) {
                 $_SESSION['id_user'] = $data['id_user'];
                 $_SESSION['username'] = $data['username'];
-                $_SESSION['role'] = $data['role']; 
+                $_SESSION['role'] = $data['role'];
                 $_SESSION['departemen'] = $data['departemen'];
 
-                // Check if password change is required
                 if ($data['password_change_required'] == 1) {
                     header("Location: ../views/auth/change_password.php");
                     exit();

@@ -3,7 +3,7 @@ require_once __DIR__ . "/../config/koneksi.php";
 require_once __DIR__ . "/../models/User.php";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $identifier = $_POST['identifier']; 
+    $identifier = $_POST['identifier'];
     $newPassword = $_POST['new_password'];
     $confirmPassword = $_POST['confirm_password'];
 

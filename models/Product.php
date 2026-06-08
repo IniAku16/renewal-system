@@ -151,4 +151,23 @@ class ProductModel
         $stmt->bind_param("i", $id);
         return $stmt->execute();
     }
+
+    public function hasEmailBeenSentToday($user_id, $fingerprint)
+    {
+        $today = date('Y-m-d');
+        $sql = "SELECT id FROM email_logs WHERE user_id = ? AND fingerprint = ? AND sent_at = ? LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bind_param("iss", $user_id, $fingerprint, $today);
+        $stmt->execute();
+        return $stmt->get_result()->num_rows > 0;
+    }
+
+    public function logEmailSent($user_id, $fingerprint)
+    {
+        $today = date('Y-m-d');
+        $sql = "INSERT INTO email_logs (user_id, fingerprint, sent_at) VALUES (?, ?, ?)";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bind_param("iss", $user_id, $fingerprint, $today);
+        return $stmt->execute();
+    }
 }

@@ -87,6 +87,37 @@ if (isset($_SESSION['id_user']) && isset($_GET['update_activity'])) {
             opacity: 0.9;
             transform: translateY(-2px);
         }
+
+        .requirement-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            color: #666;
+            padding: 5px 0;
+        }
+
+        .requirement-item i {
+            width: 20px;
+            margin-right: 8px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .requirement-item.met {
+            color: #10b981;
+        }
+
+        .requirement-item.met i {
+            color: #10b981;
+        }
+
+        .requirement-item.unmet {
+            color: #ef4444;
+        }
+
+        .requirement-item.unmet i {
+            color: #ef4444;
+        }
     </style>
 </head>
 
@@ -220,16 +251,34 @@ if (isset($_SESSION['id_user']) && isset($_GET['update_activity'])) {
         <div class="modal-dialog">
             <div class="modal-content card-custom">
                 <div class="modal-header border-0">
-                    <h5 class="fw-bold">Password Default Dibuat</h5>
+                    <h5 class="fw-bold">Detail Akun Baru</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Salin password berikut dan beritahu kepada pengguna:</p>
-                    <div class="input-group mb-2">
-                        <input type="text" id="generated_password_value" class="form-control" readonly>
-                        <button class="btn btn-outline-secondary" type="button" id="copyGeneratedPasswordBtn">Salin</button>
+                    <p class="text-muted small">Detail akun berikut siap dikirimkan kepada pengguna:</p>
+
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold text-muted mb-1">Username</label>
+                        <input type="text" id="generated_username_value" class="form-control bg-light border-0" readonly>
                     </div>
-                    <div id="generated_password_copy_feedback" class="form-text text-success" style="display:none;">Password berhasil disalin ke clipboard.</div>
+
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold text-muted mb-1">Email</label>
+                        <input type="text" id="generated_email_value" class="form-control bg-light border-0" readonly>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-muted mb-1">Password Default</label>
+                        <input type="text" id="generated_password_value" class="form-control bg-light border-0" readonly style="font-family: monospace;">
+                    </div>
+
+                    <button class="btn btn-primary w-100 py-2 mb-2 shadow-sm" id="copyAllDetailsBtn">
+                        <i class="bi bi-clipboard-check me-2"></i> Salin Semua Detail Akun
+                    </button>
+
+                    <div id="copy_feedback" class="form-text text-success text-center fw-bold" style="display:none;">
+                        <i class="bi bi-check2-circle"></i> Berhasil disalin ke clipboard!
+                    </div>
                 </div>
                 <div class="modal-footer border-0">
                     <button type="button" class="btn btn-secondary w-100" data-bs-dismiss="modal">Tutup</button>
@@ -301,33 +350,38 @@ if (isset($_SESSION['id_user']) && isset($_GET['update_activity'])) {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        
         function initEditButtons() {
             document.querySelectorAll('.edit-user-btn').forEach(btn => {
                 btn.onclick = function() {
+                    const modal = document.getElementById('editUserModal');
                     document.getElementById('edit_id_user').value = this.dataset.id;
                     document.getElementById('edit_username').value = this.dataset.username;
                     document.getElementById('edit_email').value = this.dataset.email;
                     document.getElementById('edit_dept').value = this.dataset.dept;
                     document.getElementById('edit_role').value = this.dataset.role;
-                    new bootstrap.Modal(document.getElementById('editUserModal')).show();
+                    new bootstrap.Modal(modal).show();
                 };
             });
         }
 
+    
         function refreshData() {
             const currentUrl = window.location.href;
             const updateUrl = currentUrl + (currentUrl.includes('?') ? '&' : '?') + 'update_activity=1';
 
-            fetch(updateUrl);
+            fetch(updateUrl); 
 
             fetch(currentUrl)
                 .then(res => res.text())
                 .then(html => {
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(html, 'text/html');
+                    const newTableBody = doc.getElementById('user-table-body').innerHTML;
+                    const newTotalCount = doc.getElementById('total-users-count').innerText;
 
-                    document.getElementById('user-table-body').innerHTML = doc.getElementById('user-table-body').innerHTML;
-                    document.getElementById('total-users-count').innerText = doc.getElementById('total-users-count').innerText;
+                    document.getElementById('user-table-body').innerHTML = newTableBody;
+                    document.getElementById('total-users-count').innerText = newTotalCount;
 
                     initEditButtons();
                 });
@@ -335,63 +389,68 @@ if (isset($_SESSION['id_user']) && isset($_GET['update_activity'])) {
 
         document.addEventListener('DOMContentLoaded', function() {
             initEditButtons();
+            setInterval(refreshData, 10000); 
 
-            const addUserModal = document.getElementById('addUserModal');
-            const addUserModalInstance = new bootstrap.Modal(addUserModal);
-            const passwordGeneratedModal = document.getElementById('passwordGeneratedModal');
-            const passwordGeneratedModalInstance = new bootstrap.Modal(passwordGeneratedModal);
-            const copyGeneratedPasswordBtn = document.getElementById('copyGeneratedPasswordBtn');
-            const generatedPasswordValue = document.getElementById('generated_password_value');
-            const generatedPasswordCopyFeedback = document.getElementById('generated_password_copy_feedback');
-
-            addUserModal.addEventListener('show.bs.modal', function () {
-                document.getElementById('add_dept').value = '';
-            });
-
-            passwordGeneratedModal.addEventListener('hidden.bs.modal', function () {
-                location.reload();
-            });
-
-            copyGeneratedPasswordBtn.addEventListener('click', function () {
-                const passwordText = generatedPasswordValue.value;
-                if (!passwordText) return;
-                navigator.clipboard.writeText(passwordText).then(() => {
-                    generatedPasswordCopyFeedback.style.display = 'block';
-                    setTimeout(() => {
-                        generatedPasswordCopyFeedback.style.display = 'none';
-                    }, 2500);
-                }).catch(() => {
-                    alert('Salin password gagal. Silakan salin secara manual.');
-                });
-            });
-
-            setInterval(refreshData, 5000);
+            const addUserModal = new bootstrap.Modal(document.getElementById('addUserModal'));
+            const passwordGeneratedModal = new bootstrap.Modal(document.getElementById('passwordGeneratedModal'));
 
             document.getElementById('addUserForm').onsubmit = function(e) {
                 e.preventDefault();
+                const formData = new FormData(this);
+
                 fetch('index.php?page=admin_dashboard&action=add_user', {
                         method: 'POST',
-                        body: new FormData(this)
+                        body: formData
                     })
-                    .then(res => res.json()).then(data => {
-                        if (data.status === 'error' && data.errors) {
-                            alert(data.message + ':\n\n' + data.errors.join('\n'));
-                        } else if (data.status === 'success') {
-                            if (data.generatedPassword) {
-                                document.getElementById('addUserForm').reset();
-                                addUserModalInstance.hide();
-                                generatedPasswordValue.value = data.generatedPassword;
-                                generatedPasswordCopyFeedback.style.display = 'none';
-                                passwordGeneratedModalInstance.show();
-                            } else {
-                                alert(data.message);
-                                location.reload();
-                            }
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            this.reset();
+                            addUserModal.hide();
+
+                            document.getElementById('generated_username_value').value = data.username;
+                            document.getElementById('generated_email_value').value = data.email;
+                            document.getElementById('generated_password_value').value = data.generatedPassword;
+
+                            document.getElementById('copy_feedback').style.display = 'none';
+                            passwordGeneratedModal.show();
                         } else {
-                            alert(data.message);
+                            alert(data.message + (data.errors ? ':\n' + data.errors.join('\n') : ''));
                         }
-                    });
+                    })
+                    .catch(err => alert('Terjadi kesalahan pada server.'));
             };
+
+            document.getElementById('copyAllDetailsBtn').addEventListener('click', function() {
+                const username = document.getElementById('generated_username_value').value;
+                const email = document.getElementById('generated_email_value').value;
+                const password = document.getElementById('generated_password_value').value;
+
+                const textToCopy = `Detail Akun Sistem Renewal:\n` +
+                    `---------------------------\n` +
+                    `Username : ${username}\n` +
+                    `Email    : ${email}\n` +
+                    `Password : ${password}\n` +
+                    `---------------------------\n` +
+                    `Silakan login dan segera ubah password Anda.`;
+
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    const feedback = document.getElementById('copy_feedback');
+                    feedback.style.display = 'block';
+
+                    const originalContent = this.innerHTML;
+                    this.innerHTML = '<i class="bi bi-check2"></i> Tersalin!';
+                    this.classList.replace('btn-primary', 'btn-success');
+
+                    setTimeout(() => {
+                        feedback.style.display = 'none';
+                        this.innerHTML = originalContent;
+                        this.classList.replace('btn-success', 'btn-primary');
+                    }, 2500);
+                }).catch(err => {
+                    alert('Gagal menyalin, silakan salin manual.');
+                });
+            });
 
             document.getElementById('editUserForm').onsubmit = function(e) {
                 e.preventDefault();
@@ -400,138 +459,84 @@ if (isset($_SESSION['id_user']) && isset($_GET['update_activity'])) {
                         method: 'POST',
                         body: new FormData(this)
                     })
-                    .then(res => res.json()).then(data => {
-                        if (data.status === 'error' && data.errors) {
-                            alert(data.message + ':\n\n' + data.errors.join('\n'));
-                        } else {
-                            alert(data.message);
-                            if (data.status === 'success') location.reload();
-                        }
+                    .then(res => res.json())
+                    .then(data => {
+                        alert(data.message);
+                        if (data.status === 'success') location.reload();
                     });
             };
+
+            document.getElementById('passwordGeneratedModal').addEventListener('hidden.bs.modal', () => location.reload());
+
+            document.getElementById('addUserModal').addEventListener('show.bs.modal', () => {
+                document.getElementById('add_dept').value = '';
+            });
         });
 
         function deleteUser(id) {
-            if (confirm('Hapus user ini?')) {
+            if (confirm('Hapus user ini selamanya?')) {
                 fetch('index.php?page=admin_dashboard&action=delete_user&id=' + id, {
-                    method: 'POST'
-                }).then(() => location.reload());
+                        method: 'POST'
+                    })
+                    .then(() => location.reload());
             }
         }
 
-        function validateAddPassword() {
-            const password = document.getElementById('add_password').value;
-            updatePasswordRequirements('add', password);
+        function validateAddUsername() {
+            validateUsername('add', document.getElementById('add_username').value);
+        }
+
+        function validateEditUsername() {
+            validateUsername('edit', document.getElementById('edit_username').value);
+        }
+
+        function validateUsername(prefix, username) {
+            const feedback = document.getElementById(`${prefix}_username_feedback`);
+            const errors = [];
+            if (!/^[a-zA-Z0-9._-]*$/.test(username)) {
+                errors.push('❌ Simbol tidak diizinkan (kecuali . _ -)');
+            }
+            if (username.length > 0 && username.length < 3) errors.push('❌ Minimal 3 karakter');
+            if (username.length > 50) errors.push('❌ Maksimal 50 karakter');
+
+            if (errors.length > 0) {
+                feedback.style.display = 'block';
+                feedback.innerHTML = errors.join('<br>');
+            } else {
+                feedback.style.display = (username.length > 0) ? 'block' : 'none';
+                feedback.innerHTML = '✓ Format username valid';
+            }
         }
 
         function validateEditPassword() {
             const password = document.getElementById('edit_password').value;
+            const reqBox = document.getElementById('edit_password_requirements');
             if (password.length > 0) {
-                document.getElementById('edit_password_requirements').style.display = 'block';
+                reqBox.style.display = 'block';
                 updatePasswordRequirements('edit', password);
             } else {
-                document.getElementById('edit_password_requirements').style.display = 'none';
+                reqBox.style.display = 'none';
             }
         }
 
         function updatePasswordRequirements(prefix, password) {
-            const requirements = {
+            const reqs = {
                 minlength: password.length >= 8,
                 uppercase: /[A-Z]/.test(password),
                 lowercase: /[a-z]/.test(password),
                 symbol: /[!@#$%^&*()_+\-=\[\]{};:'",.< >?\/ ]/.test(password)
             };
 
-            for (const [key, met] of Object.entries(requirements)) {
-                const element = document.getElementById(`${prefix}_req_${key}`);
-                if (element) {
-                    element.classList.remove('met', 'unmet');
-                    element.classList.add(met ? 'met' : 'unmet');
-
-                    const icon = element.querySelector('i');
-                    icon.classList.remove('bi-circle', 'bi-check-circle', 'bi-x-circle');
-                    icon.classList.add(met ? 'bi-check-circle' : 'bi-x-circle');
+            for (const [key, met] of Object.entries(reqs)) {
+                const el = document.getElementById(`${prefix}_req_${key}`);
+                if (el) {
+                    el.className = `requirement-item ${met ? 'met' : 'unmet'}`;
+                    el.querySelector('i').className = `bi ${met ? 'bi-check-circle' : 'bi-x-circle'}`;
                 }
             }
         }
-
-        function validateAddUsername() {
-            const username = document.getElementById('add_username').value;
-            validateUsername('add', username);
-        }
-
-        function validateEditUsername() {
-            const username = document.getElementById('edit_username').value;
-            validateUsername('edit', username);
-        }
-
-        function validateUsername(prefix, username) {
-            const feedback = document.getElementById(`${prefix}_username_feedback`);
-            const errors = [];
-
-            // Check for symbols
-            if (!/^[a-zA-Z0-9._-]*$/.test(username)) {
-                errors.push('❌ Username tidak boleh mengandung simbol (hanya huruf, angka, titik, underscore, dan strip yang diizinkan)');
-            } else if (username.length > 0) {
-                errors.push('✓ Format username valid');
-            }
-
-            // Check length
-            if (username.length > 0 && username.length < 3) {
-                errors.push('❌ Username minimal 3 karakter');
-            } else if (username.length >= 3 && username.length <= 50) {
-                if (!/^[a-zA-Z0-9._-]*$/.test(username)) {
-                    // Error already added above
-                } else {
-                    // This is ok
-                }
-            } else if (username.length > 50) {
-                errors.push('❌ Username maksimal 50 karakter');
-            }
-
-            if (errors.length > 0) {
-                feedback.style.display = 'block';
-                feedback.innerHTML = errors.join('<br>');
-                feedback.className = 'mt-2';
-                feedback.style.fontSize = '0.85rem';
-            } else {
-                feedback.style.display = 'none';
-            }
-        }
-
     </script>
-    <style>
-        .requirement-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 8px;
-            color: #666;
-            padding: 5px 0;
-        }
 
-        .requirement-item i {
-            width: 20px;
-            margin-right: 8px;
-            font-size: 14px;
-            text-align: center;
-        }
-
-        .requirement-item.met {
-            color: #10b981;
-        }
-
-        .requirement-item.met i {
-            color: #10b981;
-        }
-
-        .requirement-item.unmet {
-            color: #ef4444;
-        }
-
-        .requirement-item.unmet i {
-            color: #ef4444;
-        }
-    </style>
 </body>
 
 </html>
