@@ -97,21 +97,21 @@ class ProductController
         include __DIR__ . "/../views/products/index.php";
     }
 
-private function attemptEmailTrigger($user_id, $milestoneProducts)
-{
-    sort($milestoneProducts);
-    $currentFingerprint = md5(implode(',', $milestoneProducts));
+    private function attemptEmailTrigger($user_id, $milestoneProducts)
+    {
+        sort($milestoneProducts);
+        $currentFingerprint = md5(implode(',', $milestoneProducts));
 
-    if (!$this->model->hasEmailBeenSentToday($user_id, $currentFingerprint)) {
-        
-        $user_id_reminder = $user_id;
-        ob_start();
-        include __DIR__ . "/../cron/email_reminder.php";
-        ob_end_clean();
+        if (!$this->model->hasEmailBeenSentToday($user_id, $currentFingerprint)) {
 
-        $this->model->logEmailSent($user_id, $currentFingerprint);
+            $user_id_reminder = $user_id;
+            ob_start();
+            include __DIR__ . "/../cron/email_reminder.php";
+            ob_end_clean();
+
+            $this->model->logEmailSent($user_id, $currentFingerprint);
+        }
     }
-}
 
     public function create()
     {
@@ -422,7 +422,7 @@ private function attemptEmailTrigger($user_id, $milestoneProducts)
                     $expired = !empty($rawDate) ? date('Y-m-d', strtotime($rawDate)) : date('Y-m-d');
                 }
 
-                $rawHarga = $row[$columnMapping['harga']] ?? 0;
+                $rawHarga = explode(',', $row[$columnMapping['harga']])[0];
                 $harga = (int)preg_replace('/[^0-9]/', '', $rawHarga);
 
                 $res = $this->model->create($name, $serial, $expired, $harga, $user_id);

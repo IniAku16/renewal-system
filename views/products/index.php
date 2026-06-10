@@ -448,7 +448,7 @@ $activePage = 'products';
                     </div>
                     <div class="modal-body">
                         <div class="alert alert-info">
-                            <small>Format Excel harus memiliki header: <b>Product Name, Serial Number, Expired Date (YYYY-MM-DD), Last Quotation</b></small>
+                            <small>Format Excel harus memiliki header: <b>Product Name, Serial Number, Expired Date, Last Quotation</b></small>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Pilih File Excel (.xlsx / .xls)</label>
