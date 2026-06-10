@@ -13,22 +13,18 @@ class PasswordValidator
     {
         $errors = [];
 
-        // Check minimum length
         if (strlen($password) < self::$minLength) {
             $errors[] = "Password minimal " . self::$minLength . " karakter";
         }
 
-        // Check for uppercase letters
         if (!preg_match('/[A-Z]/', $password)) {
             $errors[] = "Password harus memiliki huruf besar (A-Z)";
         }
 
-        // Check for lowercase letters
         if (!preg_match('/[a-z]/', $password)) {
             $errors[] = "Password harus memiliki huruf kecil (a-z)";
         }
 
-        // Check for symbols/special characters
         if (!preg_match('/[!@#$%^&*()_+\-=\[\]{};:\'",.<>?\/ ]/', $password)) {
             $errors[] = "Password harus memiliki simbol (!@#$%^&* dll)";
         }

@@ -3,13 +3,11 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Check if user is logged in
 if (empty($_SESSION['id_user'])) {
     header("Location: login.php");
     exit;
 }
 
-// Check if password change is required
 require_once __DIR__ . "/../../config/koneksi.php";
 require_once __DIR__ . "/../../models/User.php";
 require_once __DIR__ . "/../../helpers/PasswordValidator.php";
@@ -17,7 +15,6 @@ require_once __DIR__ . "/../../helpers/PasswordValidator.php";
 $userModel = new UserModel($koneksi);
 $user = $userModel->getUserById($_SESSION['id_user']);
 
-// If not required to change password and user manually access this page, redirect
 if ($user && $user['password_change_required'] == 0) {
     header("Location: /renewal-system/public/index.php");
     exit;
@@ -35,12 +32,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($newPassword !== $confirmPassword) {
         $error = 'Password baru dan konfirmasi tidak cocok!';
     } else {
-        // Validate new password strength
         $validation = PasswordValidator::validate($newPassword);
         if (!$validation['isValid']) {
             $error = implode('<br>', $validation['errors']);
         } else {
-            // Update password
             $hashed = password_hash($newPassword, PASSWORD_DEFAULT);
             $stmt = $koneksi->prepare("UPDATE users SET password = ?, password_change_required = 0 WHERE id_user = ?");
             $stmt->bind_param("si", $hashed, $_SESSION['id_user']);
@@ -348,7 +343,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 symbol: /[!@#$%^&*()_+\-=[\]{};:'",.< >?/ ]/.test(newPassword)
             };
 
-            // Update UI for each requirement
             for (const [key, met] of Object.entries(requirements)) {
                 const element = document.getElementById(`req-${key}`);
                 if (element) {
@@ -382,7 +376,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             document.getElementById('submitBtn').disabled = !allMet;
         }
 
-        // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             validatePasswordRequirements();
         });

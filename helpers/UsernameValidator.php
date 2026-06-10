@@ -11,22 +11,18 @@ class UsernameValidator
     {
         $errors = [];
 
-        // Check if empty
         if (empty($username)) {
             $errors[] = "Username tidak boleh kosong";
         }
 
-        // Check for symbols
         if (!preg_match('/^[a-zA-Z0-9._-]+$/', $username)) {
             $errors[] = "Username tidak boleh mengandung simbol (hanya huruf, angka, titik, underscore, dan strip yang diizinkan)";
         }
 
-        // Check minimum length
         if (strlen($username) < 3) {
             $errors[] = "Username minimal 3 karakter";
         }
 
-        // Check maximum length
         if (strlen($username) > 50) {
             $errors[] = "Username maksimal 50 karakter";
         }
